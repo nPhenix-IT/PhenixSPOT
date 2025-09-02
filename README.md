@@ -1,70 +1,220 @@
-<<<<<<< HEAD
-# Phenix_RADIUSSPOT
-=======
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# **Phenix Radius** #
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+    Created By Delario
 
-## About Laravel
+### **Features**
+- Multi User / Multi Tenancy (SaaS enabled)
+- Sales Dashboard
+- Router/NAS Management
+- Profiles Management
+- Voucher Generation with QR Code
+- Voucher print
+- Customizable Voucher
+- Online voucher purchase
+- and more ...
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+#### **Compatible with any NAS/Router that Support Radius**
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## **Preview**
+### - **Dashboard**
+![Dashboard](preview/dashboard.png)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### - **Voucher Generation**
+![Voucher Generation](preview/generation.png)
+![Voucher Generation](preview/generation-1.png)
 
-## Learning Laravel
+### - **Active Voucher**
+![Active Voucher](preview/active.png)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### - **Voucher Profile**
+![Profile Voucher](preview/profile.png)
+![Profile Voucher](preview/profile-1.png)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### - **Reseller**
+![Reseller](preview/reseller.png)
+![Reseller](preview/reseller-1.png)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### - **Voucher Template**
+![Template](preview/template.png)
+![Template](preview/template-1.png)
+![Template Print](preview/print.png)
 
-## Laravel Sponsors
+### - **Fair Use Policy**
+![Template](preview/fup.png)
+![Template](preview/fup-1.png)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### - **Sales Report**
+![Template](preview/sales.png)
 
-### Premium Partners
+## **Instruction** ##
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## System Requirements
+Node: v18.12.0 or above (LTS)
+PHP: v8.2.0 or Above
+Composer: v2.2 or Above
 
-## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Clone this repository. Run the following command:
+```
+git clone https://github.com/nPhenix-IT/RADIUSSPOT.git
+```
 
-## Code of Conduct
+Move to the project directory:
+```
+cd RADIUSSPOT
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+install dependencies using Composer
+```
+composer install
+```
 
-## Security Vulnerabilities
+Find .env.example file at root folder and copy it to .env by running below command Or also can manually copy it (if not having .env file):
+```
+cp .env.example .env
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Run the following command to generate the key
+```
+php artisan key:generate
+```
 
-## License
+Install all node the dependencies:
+```
+yarn
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
->>>>>>> b1b9d2e (First commit)
+Find .env.example file at root folder and copy it to .env by running below command Or also can manually copy it (if not having .env file):
+```
+cp .env.example .env
+```
+Run the following command to generate the key
+```
+php artisan key:generate
+```
+
+### **For Development Mode: Run this command**
+```
+php artisan serve && yarn dev
+```
+### **For Production Mode: Run these commands**
+```
+yarn build
+```
+
+### **To integrate with database migrations:**
+
+You have to set your database credentials in .env file :
+```
+DB_CONNECTION = mysql
+DB_HOST = 127.0.0.1
+DB_PORT = 3306
+DB_DATABASE = DATABASE_NAME
+DB_USERNAME = DATABASE_USERNAME
+DB_PASSWORD = DATABASE_PASSWORD
+```
+
+
+### - **CHANGE CENTRAL DOMAIN [OPTIONAL]**
+
+Edit .env and Change the "CENTRAL_DOMAINS"
+
+This is optional you can Access Admin Page on the Domain Provided
+
+![Template](preview/central_domains.png)
+
+```
+...
+CENTRAL_DOMAINS=yourdomain
+...
+```
+
+### - **LOGIN TO ADMIN PAGE**
+If provide domain in "CENTRAL_DOMAINS"
+Goto http://< your domain >/auth/login
+
+If dont,
+Goto http://< your ip>:8090/auth/login
+
+![Template](preview/admin_login.png)
+
+Then, log in to the Mendyfi WebPage:
+
+Username: admin
+
+Password: admin@1234
+
+### - **ADDING USER/DOMAIN**
+
+Note: It is recommended to have a domain to add more users by using subdomains, e.g., user1.domain.com, user2.domain.com, and so on. This allows each user to access their client page, such as http://user1.domain.com/client/auth/login and http://user2.domain.com/client/auth/login.
+
+If you want to use this system with a single client account, you can use the IP address instead, allowing access to the client page at http://<ip_address>/client/auth/login.( where <ip_address> is the IP of the System Public or Local IP)
+
+![Template](preview/admin_add_domain.png)
+
+## - **BACKUP DATABASE**
+The database is automatically backed up every day,
+You can change the backup schedule to run minutely, hourly, or daily.
+To modify the schedule, edit the file at src/app/Console/Kernel.php.
+
+You can also run the backup manually by executing the following command in the terminal.
+```
+docker compose run --rm artisan app:daily-backup
+```
+
+The SQL file will be output to the "backups" folder.
+## - **RESTORE DATABASE**
+
+Currently, you can manually restore the database using the console. I’m working on integrating it into the webpage.
+
+```
+docker compose run --rm artisan app:import-backup <YYYY-MM-DD>
+```
+Replace < YYYY-MM-DD > with the date you want to restore. e.g 2024-05-05
+
+Modify the .env file to extend the number of days you want to keep backups.
+```
+DB_BACKUP_INTERVAL=7 #in Days
+```
+
+## - **TP-LINK EAP STANDALONE CONFIG**
+
+You dont need a Controller for This Setup, Just a TP-LINK EAP AP and a Server that runs Mendyfi Radius
+
+Check this Sample Config for your Guide: [Click Here](preview/tp-link.pdf)
+
+## - **TP-LINK OMADA CONTROLLER CONFIG**
+
+You need a Omada Controller for This Setup.
+
+Check this Sample Config for your Guide: [Click Here](preview/omada.pdf)
+
+## - **MIKROTIK CONFIG**
+
+Check this Sample Config for your Guide: [Click Here](preview/mikrotik.pdf)
+
+For Configuring Mikrotik to Use RADIUS: [Click Here](https://youtu.be/rgbyYfFOg6o?t=374)
+
+## - **ERROR AFTER "GIT PULL"
+If you having an error after git pull, just run this commands:
+
+Down all Containers
+
+```
+docker compose down
+```
+
+Run and Rebuild Containers
+```
+docker compose up -d --force-recreate --build
+```
+
+## Buy me a Coffee
+
+Donations are appreciated.
+
+Paypal: https://paypal.me/RommelMendiola
+
+GCash: 09553147435
+
+
