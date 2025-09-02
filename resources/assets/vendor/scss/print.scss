@@ -1,0 +1,24 @@
+@media print {
+  // Masquer tout le contenu de la page par défaut
+  body * {
+    visibility: hidden;
+  }
+
+  // Rendre la zone d'impression et son contenu visibles
+  .printable-area, .printable-area * {
+    visibility: visible;
+  }
+
+  // Positionner la zone d'impression en haut de la page pour l'impression
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  // Masquer l'arrière-plan de la modale lors de l'impression
+  .modal-backdrop {
+    display: none !important;
+  }
+}

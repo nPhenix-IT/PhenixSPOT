@@ -1,0 +1,134 @@
+{
+  "menu": [
+    {
+      "url": "/",
+      "name": "Tableau De Bord",
+      "icon": "menu-icon icon-base ti tabler-dashboard",
+      "slug": "pages-home"
+    },
+    {
+      "menuHeader": "Service Hotspot"
+    },
+    {
+      "name": "Gestion Hotspot",
+      "icon": "menu-icon icon-base ti tabler-wifi",
+      "slug": "gestion-hotspot",
+      "submenu": [
+        {
+            "url": "/routers",
+            "icon": "menu-icon icon-base ti tabler-router",
+            "name": "Mes Routeurs",
+            "slug": "user.routers.index"
+        },
+        {
+          "url": "/profiles",
+      "icon": "menu-icon icon-base ti tabler-users-group",
+          "name": "Mes Profils",
+          "slug": "user.profiles.index"
+        },
+        {
+          "url": "/vouchers",
+      "icon": "menu-icon icon-base ti tabler-ticket",
+          "name": "Gérer Vouchers",
+          "slug": "user.vouchers.index"
+        }
+      ]
+    },
+    {
+      "menuHeader": "Service VPN"
+    },
+    {
+      "name": "Services VPN",
+      "icon": "menu-icon icon-base ti tabler-shield-lock",
+      "slug": "vpn-services",
+      "submenu": [
+        {
+          "url": "/vpn-accounts",
+          "icon": "menu-icon icon-base ti tabler-brand-openvpn",
+          "name": "Comptes VPN",
+          "slug": "user.vpn-accounts.index"
+        }
+      ]
+    },
+    {
+      "menuHeader": "Paramètres & Finances"
+    },
+    {
+      "url": "/wallet",
+      "name": "Mon Portefeuille",
+      "icon": "menu-icon icon-base ti tabler-wallet",
+      "slug": "user.wallet.index"
+    },
+    {
+      "url": "/payment-gateways",
+      "name": "Moyens de Paiement",
+      "icon": "menu-icon icon-base ti tabler-credit-card",
+      "slug": "user.payment-gateways.index",
+      "roles": ["Super-admin", "Admin"]
+    },
+    {
+      "url": "/plans",
+      "name": "Abonnement",
+      "icon": "menu-icon icon-base ti tabler-diamond",
+      "slug": "user.plans.index"
+    },
+    {
+      "menuHeader": "Administration",
+      "roles": ["Super-admin", "Admin"]
+    },
+    {
+      "url": "/admin/withdrawals",
+      "name": "Demandes de Retrait",
+      "icon": "menu-icon icon-base ti tabler-transfer-out",
+      "slug": "admin.withdrawals.index",
+      "roles": ["Super-admin", "Admin"]
+    },
+    {
+      "name": "Gestion Finances",
+      "icon": "menu-icon icon-base ti tabler-credit-card",
+      "slug": "gestion-finances",
+      "roles": ["Super-admin", "Admin"],
+      "submenu": [
+            {
+              "url": "/admin/plans",
+              "name": "Gestion des Forfaits",
+              "icon": "menu-icon icon-base ti tabler-packages",
+              "slug": "admin.plans.index",
+              "roles": ["Super-admin", "Admin"]
+            },
+            {
+              "url": "/admin/coupons",
+              "name": "Bons de Réduction",
+              "icon": "menu-icon icon-base ti tabler-ticket",
+              "slug": "admin.coupons.index"
+            }
+        ]
+    },
+    {"name": "Gestion Serveurs",
+      "icon": "menu-icon icon-base ti tabler-server-2",
+      "slug": "gestion-finances",
+      "roles": ["Super-admin", "Admin"],
+      "submenu": [
+            {
+              "url": "/admin/vpn-servers",
+              "name": "Serveurs VPN",
+              "icon": "menu-icon icon-base ti tabler-server",
+              "slug": "admin.vpn-servers.index",
+              "roles": ["Super-admin", "Admin"]
+            },
+            {
+              "url": "/admin/radius-servers",
+              "name": "Serveurs RADIUS",
+              "icon": "menu-icon icon-base ti tabler-server-2",
+              "slug": "admin.radius-servers.index"
+            },
+            {
+                "url": "/admin/radius-tester",
+                "name": "Testeur RADIUS",
+                "icon": "menu-icon icon-base ti tabler-shield-check",
+                "slug": "admin.radius-tester.index"
+            }
+        ]
+    }
+  ]
+}
