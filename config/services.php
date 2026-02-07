@@ -34,9 +34,19 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    
     'moneyfusion' => [
         'api_url' => env('MONEYFUSION_API_URL'),
         'currency' => env('MONEYFUSION_CURRENCY', 'XOF'),
+    ],
+    
+    'kingsmspro' => [
+        'base_url' => env('KINGSMSPRO_BASE_URL', 'https://edok-api.kingsmspro.com/api/v1/sms/send/'),
+        'api_key' => env('KINGSMSPRO_API_KEY'),
+        'client_id' => env('KINGSMSPRO_CLIENT_ID'),
+        'sender' => env('KINGSMSPRO_SENDER'),
+        'dlr' => env('KINGSMSPRO_DLR', 'no'),
+        'dlr_url' => env('KINGSMSPRO_DLR_URL'),
     ],
 
 ];

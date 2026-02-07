@@ -31,6 +31,12 @@
       "icon": "menu-icon icon-base ti tabler-ticket",
           "name": "Gérer Vouchers",
           "slug": "user.vouchers.index"
+        },
+        {
+          "url": "/sales-page",
+          "icon": "menu-icon icon-base ti tabler-layout",
+          "name": "Page de vente",
+          "slug": "user.sales-page.edit"
         }
       ]
     },

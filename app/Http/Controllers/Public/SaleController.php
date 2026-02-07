@@ -15,8 +15,11 @@ class SaleController extends Controller
     {
         $user = User::where('slug', $slug)->firstOrFail();
         $profiles = $user->profiles()->get();
+        $settings = $user->salePageSetting;
+        $commissionPercent = $settings->commission_percent ?? config('fees.sales_commission_percent');
         $pageConfigs = ['myLayout' => 'blank'];
-        return view('content.public.sale', compact('user', 'profiles', 'pageConfigs'));
+        // return view('content.public.sale', compact('user', 'profiles', 'pageConfigs'));
+        return view('content.public.sale', compact('user', 'profiles', 'pageConfigs', 'settings', 'commissionPercent'));
     }
 
     public function purchase(Request $request, $slug)
@@ -30,16 +33,30 @@ class SaleController extends Controller
         $user = User::where('slug', $slug)->firstOrFail();
         $profile = Profile::findOrFail($request->profile_id);
         $transactionId = 'TXN-' . strtoupper(Str::random(12));
+        $settings = $user->salePageSetting;
+        $commissionPercent = $settings->commission_percent ?? config('fees.sales_commission_percent');
+        $commissionPayer = $settings->commission_payer ?? 'seller';
+        $commissionAmount = round(($profile->price * $commissionPercent) / 100, 2);
+        $totalPrice = $commissionPayer === 'client'
+            ? $profile->price + $commissionAmount
+            : $profile->price;
 
         PendingTransaction::create([
             'transaction_id' => $transactionId,
             'user_id' => $user->id,
             'profile_id' => $profile->id,
+            'customer_name' => $request->customer_name,
+            'customer_number' => $request->customer_number,
+            'commission_payer' => $commissionPayer,
+            'commission_amount' => $commissionAmount,
+            'total_price' => $totalPrice,
         ]);
 
         $response = Http::post(config('services.moneyfusion.api_url'), [
-            'totalPrice' => $profile->price,
-            'article' => [['name' => $profile->name, 'price' => $profile->price]],
+            // 'totalPrice' => $profile->price,
+            // 'article' => [['name' => $profile->name, 'price' => $profile->price]],
+            'totalPrice' => $totalPrice,
+            'article' => [['name' => $profile->name, 'price' => $totalPrice]],
             'nomclient' => $request->customer_name,
             'numeroSend' => $request->customer_number,
             'personal_Info' => [['transaction_id' => $transactionId]],

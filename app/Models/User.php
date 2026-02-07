@@ -30,11 +30,17 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone_number',
+        'country_code',
+        'sms_enabled',
+        'sms_sender',
+        'telegram_bot_token',
+        'telegram_chat_id',
         'password',
         'slug',
         'mikrotik_host',
         'mikrotik_user',
-        'mikrotik_password'
+        'mikrotik_password',
     ];
 
     /**
@@ -112,7 +118,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(VpnAccount::class); // Assuming VpnAccount is your VPN account model
     }
-
-
+    
+    public function salePageSetting()
+    {
+        return $this->hasOne(SalePageSetting::class);
+    }
 
 }

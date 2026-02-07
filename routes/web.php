@@ -11,6 +11,7 @@ use App\Http\Controllers\User\VpnAccountController;
 use App\Http\Controllers\User\PricingController;
 use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\User\UserProfileController;
+use App\Http\Controllers\User\SalePageController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\VpnServerController;
@@ -47,6 +48,10 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::get('payment/{plan}/{duration}', [PricingController::class, 'payment'])->name('payment');
     Route::post('apply-coupon', [PricingController::class, 'applyCoupon'])->name('apply-coupon');
     Route::get('profile/{tab?}', [UserProfileController::class, 'index'])->name('profile');
+    Route::post('profile/notifications', [UserProfileController::class, 'updateNotifications'])->name('profile.notifications');
+    Route::post('profile/notifications/test-telegram', [UserProfileController::class, 'testTelegram'])->name('profile.notifications.test-telegram');
+    Route::get('sales-page', [SalePageController::class, 'edit'])->name('sales-page.edit');
+    Route::post('sales-page', [SalePageController::class, 'update'])->name('sales-page.update');
     Route::get('routers/{router}/generate-script', [RouterController::class, 'generateScript'])->name('routers.generate-script');
     Route::resource('routers', RouterController::class);
 });
@@ -79,3 +84,4 @@ Route::prefix('payment')->name('public.payment.')->group(function () {
 // --- Route pour le Webhook FreeRADIUS ---
 // Cette route doit être accessible publiquement par le serveur RADIUS.
 Route::post('/radius/webhook', [RadiusWebhookController::class, 'handle'])->name('radius.webhook');
+

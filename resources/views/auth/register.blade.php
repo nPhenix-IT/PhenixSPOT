@@ -63,6 +63,30 @@ $customizerHidden = 'customizer-hide';
             </span>
             @enderror
           </div>
+          <div class="mb-6">
+            <label class="form-label">Phone Number</label>
+            <div class="row g-2">
+              <div class="col-4">
+                <input type="text" class="form-control @error('country_code') is-invalid @enderror" id="country_code"
+                  name="country_code" placeholder="CI" value="{{ old('country_code') }}" />
+                @error('country_code')
+                <span class="invalid-feedback" role="alert">
+                  <span class="fw-medium">{{ $message }}</span>
+                </span>
+                @enderror
+              </div>
+              <div class="col-8">
+                <input type="text" class="form-control @error('phone_number') is-invalid @enderror" id="phone_number"
+                  name="phone_number" placeholder="01 XX XXX XXX" value="{{ old('phone_number') }}" />
+                @error('phone_number')
+                <span class="invalid-feedback" role="alert">
+                  <span class="fw-medium">{{ $message }}</span>
+                </span>
+                @enderror
+              </div>
+            </div>
+            <div class="form-text">Country code will be detected automatically.</div>
+          </div>
           <div class="mb-6 form-password-toggle">
             <label class="form-label" for="password">Password</label>
             <div class="input-group input-group-merge @error('password') is-invalid @enderror">
@@ -142,4 +166,27 @@ $customizerHidden = 'customizer-hide';
     <!-- /Register -->
   </div>
 </div>
+@endsection
+
+@section('page-script')
+<script>
+  const phoneInput = document.getElementById('phone_number');
+  const countryCodeInput = document.getElementById('country_code');
+
+  const setCountryDefaults = ({ country_calling_code: callingCode, country_code: countryCode } = {}) => {
+    if (countryCodeInput && countryCode) {
+      countryCodeInput.value = countryCode.toUpperCase();
+    }
+    if (phoneInput && callingCode && !phoneInput.value) {
+      phoneInput.value = `+${callingCode} `;
+    }
+  };
+
+  if (!countryCodeInput.value || !phoneInput.value) {
+    fetch('https://ipapi.co/json/')
+      .then(response => response.ok ? response.json() : null)
+      .then(data => setCountryDefaults(data))
+      .catch(() => setCountryDefaults());
+  }
+</script>
 @endsection

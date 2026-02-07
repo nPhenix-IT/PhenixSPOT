@@ -122,7 +122,7 @@ class RouterController extends Controller
         $radiusServerIp = $activeServer->ip_address;
         $radiusSecret = $router->radius_secret;
 
-        $script = "/radius add service=hotspot address=$radiusServerIp secret=\"$radiusSecret\" comment=\"Serveur PhenixSPOT\"\n";
+        $script = "/radius add service=hotspot address=$radiusServerIp secret=\"$radiusSecret\" comment=\"Serveur PhenixSPOT\";\n";
         $script .= "/ip hotspot profile set [find default=yes] use-radius=yes\n";
 
         return response()->json(['script' => $script]);

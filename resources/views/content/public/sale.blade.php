@@ -18,8 +18,10 @@ $pageConfigs = ['myLayout' => 'blank'];
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="text-center mb-4">
-                <h2>Forfaits WiFi de {{ $user->name }}</h2>
-                <p>Sélectionnez un forfait pour vous connecter.</p>
+                <h2 style="color: {{ optional($settings)->primary_color ?? '#1f2937' }}">
+                    {{ optional($settings)->title ?: "Forfaits WiFi de {$user->name}" }}
+                </h2>
+                <p>{{ optional($settings)->description ?: 'Sélectionnez un forfait pour vous connecter.' }}</p>
             </div>
 
             @if(session('success'))
@@ -33,11 +35,27 @@ $pageConfigs = ['myLayout' => 'blank'];
                 @csrf
                 <div class="row">
                     @forelse($profiles as $profile)
+                    @php
+                        $commissionPayer = optional($settings)->commission_payer ?? 'seller';
+                        $commissionAmount = round(($profile->price * $commissionPercent) / 100, 2);
+                        $displayPrice = $commissionPayer === 'client'
+                            ? $profile->price + $commissionAmount
+                            : $profile->price;
+                    @endphp
                     <div class="col-md-6 col-lg-4 mb-4">
                         <div class="card h-100">
                             <div class="card-body text-center">
                                 <h5 class="card-title">{{ $profile->name }}</h5>
-                                <h3 class="card-price">{{ $profile->price == 0 ? 'Gratuit' : number_format($profile->price, 0, ',', ' ') . ' FCFA' }}</h3>
+                                <h3 class="card-price">
+                                    {{ $displayPrice == 0 ? 'Gratuit' : number_format($displayPrice, 0, ',', ' ') . ' FCFA' }}
+                                </h3>
+                                <div class="text-muted small mb-2">
+                                    @if ($commissionPayer === 'client' && $commissionAmount > 0)
+                                        Prix incluant {{ number_format($commissionAmount, 0, ',', ' ') }} FCFA de commission.
+                                    @elseif ($commissionAmount > 0)
+                                        Commission prise en charge par le vendeur.
+                                    @endif
+                                </div>
                                 <ul class="list-unstyled mt-3 mb-4">
                                     <li>{{ $profile->rate_limit ?? 'Vitesse par défaut' }}</li>
                                     <li>{{ $profile->data_limit ? round($profile->data_limit / (1024*1024*1024), 2) . ' Go' : 'Données illimitées' }}</li>
@@ -60,7 +78,10 @@ $pageConfigs = ['myLayout' => 'blank'];
                         <div class="col-md-6"><label class="form-label">Votre numéro</label><input type="text" name="customer_number" class="form-control" required></div>
                     </div>
                     <div class="text-center mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg">Payer avec Money Fusion</button>
+                        <button type="submit" class="btn btn-primary btn-lg"
+                          style="background-color: {{ optional($settings)->primary_color ?? '#1f2937' }}; border-color: {{ optional($settings)->primary_color ?? '#1f2937' }};">
+                          Payer avec Money Fusion
+                        </button>
                     </div>
                 @endif
             </form>
