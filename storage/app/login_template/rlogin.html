@@ -1,0 +1,21 @@
+$(if http-status == 302)Hotspot login required$(endif)
+$(if http-header == "Location")$(link-redirect)$(endif)
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0; url=$(link-redirect)">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>$(identity)</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <div class="main-card">
+        <div class="card-body" style="text-align: center;">
+            <div class="spinner"></div>
+            <h1 class="brand-title">Redirection</h1>
+            <p class="brand-subtitle">Veuillez patienter...</p>
+        </div>
+    </div>
+</body>
+</html>

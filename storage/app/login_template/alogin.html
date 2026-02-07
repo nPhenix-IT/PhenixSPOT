@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="2; url=$(link-redirect)">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>$(identity) - Redirection</title>
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="stylesheet" href="assets/style.css">
+    <script language="JavaScript">
+        function startClock() {
+            $(if popup == 'true')
+            open('$(link-status)', 'hotspot_status', 'toolbar=0,location=0,directories=0,status=0,menubars=0,resizable=1,width=290,height=200');
+            $(endif)
+            location.href = './success.html';
+        }
+    </script>
+</head>
+<body onLoad="startClock()">
+    <div class="main-card">
+        <div class="card-body" style="text-align: center;">
+            <div class="spinner"></div>
+            <h1 class="brand-title">Connecté</h1>
+            <p class="brand-subtitle">Redirection en cours...</p>
+            <br>
+            <a href="./login" class="manual-link">Cliquez ici si rien ne se passe</a>
+        </div>
+    </div>
+</body>
+</html>
