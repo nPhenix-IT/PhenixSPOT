@@ -1,0 +1,19 @@
+$(if http-status == 302)Hotspot redirect$(endif)
+$(if http-header == "Location")$(link-redirect)$(endif)
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0; url=$(link-redirect)">
+    <title>Redirect</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <div class="main-card">
+        <div class="card-body" style="text-align: center;">
+            <div class="spinner"></div>
+            <h1 class="brand-title">Chargement</h1>
+        </div>
+    </div>
+</body>
+</html>
