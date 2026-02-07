@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>$(identity) - Statut</title>
+    <meta name="theme-color" content="#0f172a" />
+    $(if refresh-timeout)
+    <meta http-equiv="refresh" content="$(refresh-timeout-secs)">
+    $(endif)
+    <link rel="stylesheet" href="assets/style.css">
+    
+    <script language="JavaScript">
+        $(if advert-pending == 'yes')
+        var popup = '';
+        function focusAdvert() { if (window.focus) popup.focus(); }
+        function openAdvert() {
+            popup = open('$(link-advert)', 'hotspot_advert', '');
+            setTimeout("focusAdvert()", 1000);
+        }
+        $(endif)
+        
+        function openLogout() {
+            if (window.name != 'hotspot_status') return true;
+            open('$(link-logout)', 'hotspot_logout', 'toolbar=0,location=0,directories=0,status=0,menubars=0,resizable=1,width=280,height=250');
+            window.close();
+            return false;
+        }
+    </script>
+</head>
+<body $(if advert-pending == 'yes') onLoad="openAdvert()" $(endif)>
+
+    <div class="main-card">
+        <div class="status-bar">
+            <span>$(identity)</span>
+            <div class="status-pill">
+                <div class="pulse-dot"></div> Actif
+            </div>
+        </div>
+
+        <div class="card-header">
+            <div class="logo-container">
+                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            </div>
+            <div class="username" id="user">
+                $(if login-by == 'trial') Utilisateur Invité $(elif login-by != 'mac') $(username) $(endif)
+            </div>
+            <p class="brand-subtitle">Statut de votre connexion</p>
+        </div>
+
+        <form action="$(link-logout)" name="logout" onSubmit="return openLogout()">
+            <div class="card-body">
+                $(if blocked == 'yes')
+                <div class="warning-box">
+                    <a href="$(link-advert)" target="hotspot_advert" style="color:inherit; font-weight:bold;">Publicité requise</a> pour continuer
+                </div>
+                $(endif)
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Durée</div>
+                        <div class="stat-value">$(uptime)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Download</div>
+                        <div class="stat-value">$(bytes-out-nice)</div>
+                    </div>
+                    $(if remain-bytes-total)
+                    <div class="stat-card">
+                        <div class="stat-label">Quota</div>
+                        <div class="stat-value">$(remain-bytes-total-nice)</div>
+                    </div>
+                    $(endif)
+                    $(if session-time-left)
+                    <div class="stat-card">
+                        <div class="stat-label">Reste</div>
+                        <div class="stat-value">$(session-time-left)</div>
+                    </div>
+                    $(endif)
+                </div>
+
+                <div class="tech-info">
+                    <div class="tech-row">
+                        <span class="tech-label">Adresse IP</span>
+                        <span class="tech-val">$(ip)</span>
+                    </div>
+                    <div class="tech-row">
+                        <span class="tech-label">Validité</span>
+                        <span class="tech-val"><iframe id="exp" frameborder="0" scrolling="no" src="about:blank" style="width:100px; height:20px;"></iframe></span>
+                    </div>
+                </div>
+
+                $(if login-by-mac != 'yes')
+                <button class="btn-action btn-logout" type="submit">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7"></path></svg>
+                    Se Déconnecter
+                </button>
+                $(endif)
+
+                <div style="margin-top:20px; text-align:center;">
+                    <p style="color:var(--text-muted); font-size:11px;">
+                        &copy; <script>document.write(new Date().getFullYear());</script> $(identity)
+                    </p>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script type="text/javascript">
+        var usr = document.getElementById('user').innerText.trim();
+        var url = "https://example.com/status/status.php?name="; 
+        var SessionName = "wifijoss";
+        document.getElementById('exp').src = url + usr + "&session=" + SessionName;
+    </script>
+</body>
+</html>
