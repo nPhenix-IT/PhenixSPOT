@@ -37,12 +37,15 @@
           "icon": "menu-icon icon-base ti tabler-layout",
           "name": "Page de vente",
           "slug": "user.sales-page.edit"
+<<<<<<< HEAD
+=======
         },
         {
           "url": "/reports",
           "icon": "menu-icon icon-base ti tabler-chart-bar",
           "name": "Reporting & Exports",
           "slug": "user.reports.index"
+>>>>>>> master
         }
       ]
     },
