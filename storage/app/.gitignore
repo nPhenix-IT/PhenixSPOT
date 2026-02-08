@@ -2,5 +2,3 @@
 !private/
 !public/
 !.gitignore
-!login_template/
-!login_template/**

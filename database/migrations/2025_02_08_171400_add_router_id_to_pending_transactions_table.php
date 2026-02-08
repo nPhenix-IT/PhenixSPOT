@@ -9,16 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pending_transactions', function (Blueprint $table) {
-            $table->enum('commission_payer', ['seller', 'client'])->default('seller')->after('customer_number');
-            $table->decimal('commission_amount', 8, 2)->default(0)->after('commission_payer');
-            $table->decimal('total_price', 8, 2)->default(0)->after('commission_amount');
+            $table->foreignId('router_id')->nullable()->after('user_id')->constrained()->nullOnDelete();
         });
     }
 
     public function down(): void
     {
         Schema::table('pending_transactions', function (Blueprint $table) {
-            $table->dropColumn(['commission_payer', 'commission_amount', 'total_price']);
+            $table->dropConstrainedForeignId('router_id');
         });
     }
 };

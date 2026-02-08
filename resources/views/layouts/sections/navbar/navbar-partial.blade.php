@@ -102,7 +102,7 @@ use Illuminate\Support\Facades\Route;
         </li>
         <li>
           <a class="dropdown-item"
-            href="{{ Route::has('profile.show') ? route('profile.show') : 'javascript:void(0);' }}">
+            href="{{ Route::has('profile.notifications') ? route('profile.notifications') : 'javascript:void(0);' }}">
             <i class="icon-base ti tabler-user me-3 icon-md"></i><span class="align-middle">My Profile</span> </a>
         </li>
         @if (Auth::check() && Laravel\Jetstream\Jetstream::hasApiFeatures())

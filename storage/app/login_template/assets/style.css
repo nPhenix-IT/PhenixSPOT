@@ -1,7 +1,7 @@
 /* --- DESIGN SYSTEM UNIFIÉ --- */
 :root {
-    --primary: #3b82f6; /* Blue 500 */
-    --primary-glow: rgba(59, 130, 246, 0.5);
+    --primary: {{PRIMARY_COLOR}}; /* Blue 500 */
+    --primary-glow: {{PRIMARY_GLOW}};
     --accent: #8b5cf6; /* Violet 500 */
     --success: #10b981; /* Emerald 500 */
     --danger: #ef4444; /* Red 500 */
@@ -303,8 +303,18 @@ body {
 .btn-contact-2:hover { background: #3b82f6; color: white; transform: translateY(-2px); }
 
 /* --- PRICING --- */
+.pricing-title {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
 .pricing-area {
-    margin-top: 30px;
+    margin-top: 12px;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
@@ -315,9 +325,11 @@ body {
     border-radius: 14px;
     text-align: center;
     transition: all 0.3s;
-    cursor: default;
+    cursor: pointer;
     color: white;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    text-decoration: none;
+    display: block;
 }
 
 .price-badge:hover { transform: translateY(-3px) scale(1.02); }
@@ -329,6 +341,20 @@ body {
 
 .badge-time { font-size: 11px; opacity: 0.9; text-transform: uppercase; font-weight: 600; display: block; }
 .badge-val { font-size: 16px; font-weight: 800; display: block; margin-top: 2px; }
+.badge-cta {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
 
 /* --- STATS & TABLES --- */
 .stats-grid {

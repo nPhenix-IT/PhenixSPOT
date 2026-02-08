@@ -3,40 +3,89 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use App\Models\Profile;
+use App\Models\User;
+use Exception;
 
 class MoneyFusionService
 {
     protected string $apiUrl;
-    protected string $apiKey;
-    protected string $secretKey;
 
-    public function __construct(string $apiKey, string $secretKey)
+    public function __construct()
     {
-        $this->apiKey = $apiKey;
-        $this->secretKey = $secretKey; // Bien que non utilisé dans l'API Web, c'est une bonne pratique de l'avoir
-        $this->apiUrl = 'https://api.moneyfusion.net/pay'; // Remplacez par l'URL de production réelle
+        $this->apiUrl = config('services.moneyfusion.api_url') ?? env('MONEYFUSION_API_URL') ?? 'https://api.moneyfusion.net/pay';
     }
 
-    public function initiatePayment(int $amount, string $customerName, string $customerNumber, string $transactionId)
+    public function initiatePayment(
+        User $user,
+        Profile $profile,
+        float $totalPrice,
+        string $transactionId,
+        string $returnUrl,
+        string $webhookUrl,
+        string $customerName,
+        string $customerNumber
+    ): array
     {
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            // Ajoutez d'autres en-têtes si requis par Money Fusion, comme une clé API
-        ])->post($this->apiUrl, [
-            'totalPrice' => $amount,
-            'article' => [['name' => 'Voucher WiFi', 'price' => $amount]],
+        $payload = [
+            'totalPrice' => (int) $totalPrice,
+            'article' => [[
+                'name' => $profile->name,
+                'price' => (int) $totalPrice,
+            ]],
             'nomclient' => $customerName,
             'numeroSend' => $customerNumber,
-            'personal_Info' => [['transaction_id' => $transactionId]],
-            'return_url' => route('public.payment.callback'),
-            'webhook_url' => route('public.payment.webhook'),
-        ]);
+            'return_url' => $returnUrl,
+            'webhook_url' => $webhookUrl,
+            'personal_Info' => [[
+                'orderId' => $transactionId,
+                'userId' => $user->id,
+            ]],
+        ];
 
-        if ($response->failed() || !$response->json('statut')) {
-            // Gérer l'erreur, par exemple en lançant une exception
-            throw new \Exception('Impossible d\'initier le paiement avec Money Fusion.');
+        try {
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])->post($this->apiUrl, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (($data['statut'] ?? false) === true || isset($data['url'])) {
+                    return $data;
+                }
+            }
+
+            Log::error('MoneyFusion API error', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            throw new Exception('Impossible d\'initier le paiement avec Money Fusion.');
+        } catch (Exception $e) {
+            Log::error('MoneyFusion exception', ['message' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
+    public function checkStatus(string $tokenPay): array
+    {
+        $statusUrl = "https://www.pay.moneyfusion.net/paiementNotif/{$tokenPay}";
+        $response = Http::get($statusUrl);
+        if ($response->failed()) {
+            Log::error('MoneyFusion status check failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            return [];
         }
 
         return $response->json(); // Retourne ['statut' => true, 'token' => '...', 'url' => '...']
+    }
+
+    public function isPaid(array $statusData): bool
+    {
+        $paymentStatus = $statusData['data']['statut'] ?? null;
+        return ($statusData['statut'] ?? false) && $paymentStatus === 'paid';
     }
 }

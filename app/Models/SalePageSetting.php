@@ -14,6 +14,13 @@ class SalePageSetting extends Model
         'title',
         'description',
         'primary_color',
+        'login_primary_color',
+        'login_ticker_text',
+        'login_dns',
+        'login_contact_phone_1',
+        'login_contact_label_1',
+        'login_contact_phone_2',
+        'login_contact_label_2',
         'commission_payer',
         'commission_percent',
     ];
