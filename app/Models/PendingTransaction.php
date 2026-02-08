@@ -9,6 +9,14 @@ use App\Models\Profile;
 
 class PendingTransaction extends Model {
     use HasFactory;
+<<<<<<< HEAD
+    protected $fillable = [
+        'transaction_id',
+        'user_id',
+        'profile_id',
+        'customer_name',
+        'customer_number',
+=======
     // protected $fillable = ['transaction_id', 'user_id', 'profile_id', 'payment_token', 'status'];
     protected $fillable = [
         'transaction_id',
@@ -19,12 +27,15 @@ class PendingTransaction extends Model {
         'customer_number',
         'login_url',
         'voucher_code',
+>>>>>>> master
         'commission_payer',
         'commission_amount',
         'total_price',
         'payment_token',
         'status',
     ];
+<<<<<<< HEAD
+=======
     
     public function router(): BelongsTo
     {
@@ -35,4 +46,5 @@ class PendingTransaction extends Model {
     {
         return $this->belongsTo(Profile::class, 'profile_id');
     }
+>>>>>>> master
 }

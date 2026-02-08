@@ -118,10 +118,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(VpnAccount::class); // Assuming VpnAccount is your VPN account model
     }
+<<<<<<< HEAD
+
+=======
     
+>>>>>>> master
     public function salePageSetting()
     {
         return $this->hasOne(SalePageSetting::class);
     }
+<<<<<<< HEAD
+
+
+=======
+>>>>>>> master
 
 }
