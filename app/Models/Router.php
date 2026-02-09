@@ -8,7 +8,20 @@ class Router extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'name', 'ip_address', 'radius_secret', 'brand', 'description',
+        'user_id',
+        'name',
+        'ip_address',
+        'radius_secret',
+        'brand',
+        'description',
+        'latitude',
+        'longitude',
+        'status',
+    ];
+    
+    protected $casts = [
+        'latitude' => 'float',
+        'longitude' => 'float',
     ];
 
     public function user()

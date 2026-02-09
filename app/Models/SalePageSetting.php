@@ -14,8 +14,6 @@ class SalePageSetting extends Model
         'title',
         'description',
         'primary_color',
-<<<<<<< HEAD
-=======
         'login_primary_color',
         'login_ticker_text',
         'login_dns',
@@ -23,7 +21,6 @@ class SalePageSetting extends Model
         'login_contact_label_1',
         'login_contact_phone_2',
         'login_contact_label_2',
->>>>>>> master
         'commission_payer',
         'commission_percent',
     ];

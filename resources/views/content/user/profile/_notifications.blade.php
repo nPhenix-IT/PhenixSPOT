@@ -35,12 +35,6 @@
         @if (session('success'))
           <div class="alert alert-success mt-4">{{ session('success') }}</div>
         @endif
-<<<<<<< HEAD
-        @if (session('error'))
-          <div class="alert alert-danger mt-4">{{ session('error') }}</div>
-        @endif
-=======
->>>>>>> master
       </div>
       <div class="card-body">
         <form action="{{ route('user.profile.notifications') }}" method="POST">
@@ -83,11 +77,7 @@
 </div>
 
 <div class="modal fade" id="telegramHelpModal" tabindex="-1" aria-labelledby="telegramHelpModalLabel" aria-hidden="true">
-<<<<<<< HEAD
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-=======
   <div class="modal-dialog modal-dialog-centered modal-xl">
->>>>>>> master
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
         <div class="d-flex align-items-center gap-3">
@@ -103,11 +93,7 @@
       </div>
       <div class="modal-body pt-4">
         <div class="row g-4">
-<<<<<<< HEAD
-          <div class="col-lg-12">
-=======
           <div class="col-lg-4">
->>>>>>> master
             <div class="card bg-label-primary border-0 h-100">
               <div class="card-body">
                 <div class="d-flex align-items-center gap-2 mb-3">
@@ -132,11 +118,7 @@
               </div>
             </div>
           </div>
-<<<<<<< HEAD
-          <div class="col-lg-12">
-=======
           <div class="col-lg-4">
->>>>>>> master
             <div class="card bg-label-success border-0 h-100">
               <div class="card-body">
                 <div class="d-flex align-items-center gap-2 mb-3">
@@ -152,11 +134,7 @@
               </div>
             </div>
           </div>
-<<<<<<< HEAD
-          <div class="col-lg-12">
-=======
           <div class="col-lg-4">
->>>>>>> master
             <div class="card bg-label-warning border-0 h-100">
               <div class="card-body">
                 <div class="d-flex align-items-center gap-2 mb-3">
@@ -211,8 +189,4 @@
   </div>
 </div>
 
-<<<<<<< HEAD
 @endsection
-=======
-@endsection
->>>>>>> master

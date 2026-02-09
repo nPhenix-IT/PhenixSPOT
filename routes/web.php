@@ -60,6 +60,8 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::get('sales-page/login-template-preview', [SalePageController::class, 'previewLoginTemplate'])->name('sales-page.login-template-preview');
     Route::get('routers/{router}/generate-script', [RouterController::class, 'generateScript'])->name('routers.generate-script');
     Route::resource('routers', RouterController::class);
+    
+    Route::match(['get', 'post'], '/reports', [ReportController::class, 'index'])->name('user.reports.index');
 });
 
 // Routes Admin

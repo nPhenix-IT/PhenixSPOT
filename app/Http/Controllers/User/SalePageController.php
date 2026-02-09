@@ -6,10 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SalePageSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-<<<<<<< HEAD
-=======
 use Illuminate\Support\Facades\File;
->>>>>>> master
 
 class SalePageController extends Controller
 {
@@ -19,8 +16,6 @@ class SalePageController extends Controller
         $settings = $user->salePageSetting ?: new SalePageSetting([
             'commission_payer' => 'seller',
             'commission_percent' => config('fees.sales_commission_percent'),
-<<<<<<< HEAD
-=======
             'login_primary_color' => '#3b82f6',
             'login_ticker_text' => '🚀 Bienvenue sur $(identity) ! Connexion ultra-rapide et illimitée à partir de 100 FCFA. Profitez-en maintenant ! ⚡ Support technique disponible 24/7.',
             'login_dns' => '10.1.254.1',
@@ -28,7 +23,6 @@ class SalePageController extends Controller
             'login_contact_label_1' => '01 00 000 000',
             'login_contact_phone_2' => '0500000000',
             'login_contact_label_2' => '05 00 000 000',
->>>>>>> master
         ]);
 
         return view('content.sales-page.index', compact('settings'));
@@ -43,8 +37,6 @@ class SalePageController extends Controller
             'description' => 'nullable|string|max:400',
             'primary_color' => 'nullable|string|max:20',
             'commission_payer' => 'required|in:seller,client',
-<<<<<<< HEAD
-=======
             'login_primary_color' => 'nullable|string|max:20',
             'login_ticker_text' => 'nullable|string|max:300',
             'login_dns' => 'nullable|string|max:255',
@@ -52,7 +44,6 @@ class SalePageController extends Controller
             'login_contact_label_1' => 'nullable|string|max:50',
             'login_contact_phone_2' => 'nullable|string|max:50',
             'login_contact_label_2' => 'nullable|string|max:50',
->>>>>>> master
         ]);
 
         $data['commission_percent'] = config('fees.sales_commission_percent');
@@ -66,8 +57,6 @@ class SalePageController extends Controller
             ->route('user.sales-page.edit')
             ->with('success', 'Page de vente mise à jour.');
     }
-<<<<<<< HEAD
-=======
 
     public function downloadLoginTemplate()
     {
@@ -221,5 +210,4 @@ class SalePageController extends Controller
         $b = $int & 255;
         return "rgba({$r}, {$g}, {$b}, {$alpha})";
     }
->>>>>>> master
 }

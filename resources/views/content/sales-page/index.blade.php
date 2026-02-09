@@ -3,15 +3,9 @@
 @section('title', 'Page de vente')
 
 @section('content')
-<<<<<<< HEAD
-<div class="row">
-  <div class="col-lg-8">
-    <div class="card">
-=======
 <div class="row g-4">
   <div class="col-lg-7">
     <div class="card h-100">
->>>>>>> master
       <div class="card-header">
         <h5 class="mb-0">Personnaliser la page de vente</h5>
         <p class="text-muted mb-0">Modifiez le texte et choisissez qui paie la commission.</p>
@@ -77,8 +71,6 @@
               <div class="text-danger small mt-1">{{ $message }}</div>
             @enderror
           </div>
-<<<<<<< HEAD
-=======
           <hr class="my-5">
           <h6 class="mb-4">Personnalisation du login MikroTik</h6>
           <div class="mb-4">
@@ -146,25 +138,19 @@
               @enderror
             </div>
           </div>
->>>>>>> master
           <div class="d-flex gap-3">
             <button type="submit" class="btn btn-primary">Enregistrer</button>
             <a href="{{ route('public.sale.show', auth()->user()->slug) }}" class="btn btn-label-secondary" target="_blank">
               Voir la page publique
             </a>
-<<<<<<< HEAD
-=======
             <a href="{{ route('user.sales-page.download-login-template') }}" class="btn btn-outline-primary">
               Télécharger le template login
             </a>
->>>>>>> master
           </div>
         </form>
       </div>
     </div>
   </div>
-<<<<<<< HEAD
-=======
   <div class="col-lg-5">
     <div class="card h-100">
       <div class="card-header d-flex align-items-center justify-content-between">
@@ -237,7 +223,6 @@ add dst-host=cdnjs.cloudflare.com</code></pre>
       </div>
     </div>
   </div>
->>>>>>> master
 </div>
 @endsection
 
@@ -245,11 +230,8 @@ add dst-host=cdnjs.cloudflare.com</code></pre>
 <script>
   const colorPicker = document.getElementById('primary_color_picker');
   const colorInput = document.getElementById('primary_color');
-<<<<<<< HEAD
-=======
   const loginColorPicker = document.getElementById('login_primary_color_picker');
   const loginColorInput = document.getElementById('login_primary_color');
->>>>>>> master
 
   if (colorPicker && colorInput) {
     colorPicker.addEventListener('input', event => {
@@ -261,8 +243,6 @@ add dst-host=cdnjs.cloudflare.com</code></pre>
       }
     });
   }
-<<<<<<< HEAD
-=======
 
   if (loginColorPicker && loginColorInput) {
     loginColorPicker.addEventListener('input', event => {
@@ -274,6 +254,5 @@ add dst-host=cdnjs.cloudflare.com</code></pre>
       }
     });
   }
->>>>>>> master
 </script>
 @endsection
