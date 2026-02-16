@@ -12,12 +12,13 @@
                     <div class="col-md-4">
                         <h6>Variables Disponibles</h6>
                         <ul class="list-group">
-                            <li class="list-group-item"><strong>@{{ code }}</strong>: Le code du voucher</li>
-                            <li class="list-group-item"><strong>@{{ profile_name }}</strong>: Nom du profil</li>
-                            <li class="list-group-item"><strong>@{{ price }}</strong>: Prix du voucher</li>
-                            <li class="list-group-item"><strong>@{{ validity }}</strong>: Durée de validité</li>
-                            <li class="list-group-item"><strong>@{{ data_limit }}</strong>: Quota de données</li>
-                            <li class="list-group-item"><strong>@{{ qrcode }}</strong>: Le QR Code de connexion</li>
+                            <li class="list-group-item"><strong>@@{{ code }}</strong>: Le code du voucher</li>
+                            <li class="list-group-item"><strong>@@{{ profile_name }}</strong>: Nom du profil</li>
+                            <li class="list-group-item"><strong>@@{{ price }}</strong>: Prix du voucher</li>
+                            <li class="list-group-item"><strong>@@{{ validity }}</strong>: Durée de validité</li>
+                            <li class="list-group-item"><strong>@@{{ data_limit }}</strong>: Quota de données</li>
+                            <li class="list-group-item"><strong>@@{{ contact }}</strong>: N° de Telephone</li>
+                            <li class="list-group-item"><strong>@@{{ qrcode }}</strong>: Le QR Code de connexion</li>
                         </ul>
                     </div>
                 </div>

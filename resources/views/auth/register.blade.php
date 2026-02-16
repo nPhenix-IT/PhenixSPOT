@@ -1,192 +1,232 @@
 @php
 use Illuminate\Support\Facades\Route;
-$configData = Helper::appClasses();
 $customizerHidden = 'customizer-hide';
 @endphp
 
 @extends('layouts/blankLayout')
 
-@section('title', 'Register Page')
+@section('title', 'Inscription - PhenixSPOT')
+
+@section('vendor-style')
+@vite(['resources/assets/vendor/libs/@form-validation/form-validation.scss'])
+<!-- intl-tel-input CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.css">
+@endsection
 
 @section('page-style')
 @vite(['resources/assets/vendor/scss/pages/page-auth.scss'])
+<style>
+    .iti { width: 100%; }
+    .iti__country-list { z-index: 2000; }
+    
+    /* Élargir le conteneur pour accueillir les 2 colonnes confortablement */
+    @media (min-width: 768px) {
+      .authentication-wrapper.authentication-basic .authentication-inner {
+        max-width: 850px;
+      }
+    }
+</style>
 @endsection
 
-@section('content')
-<div class="authentication-wrapper authentication-cover">
-  <!-- Logo -->
-  <a href="{{ url('/') }}" class="app-brand auth-cover-brand">
-    <span class="app-brand-logo demo">@include('_partials.macros')</span>
-    <span class="app-brand-text demo text-heading fw-bold">{{ config('variables.templateName') }}</span>
-  </a>
-  <!-- /Logo -->
-  <div class="authentication-inner row m-0">
-    <!-- /Left Text -->
-    <div class="d-none d-xl-flex col-xl-8 p-0">
-      <div class="auth-cover-bg d-flex justify-content-center align-items-center">
-        <img src="{{ asset('assets/img/illustrations/auth-register-illustration-' . $configData['theme'] . '.png') }}"
-          alt="auth-register-cover" class="my-5 auth-illustration"
-          data-app-light-img="illustrations/auth-register-illustration-light.png"
-          data-app-dark-img="illustrations/auth-register-illustration-dark.png" />
-        <img src="{{ asset('assets/img/illustrations/bg-shape-image-' . $configData['theme'] . '.png') }}"
-          alt="auth-register-cover" class="platform-bg" data-app-light-img="illustrations/bg-shape-image-light.png"
-          data-app-dark-img="illustrations/bg-shape-image-dark.png" />
-      </div>
-    </div>
-    <!-- /Left Text -->
-
-    <!-- Register -->
-    <div class="d-flex col-12 col-xl-4 align-items-center authentication-bg p-sm-12 p-6">
-      <div class="w-px-400 mx-auto mt-12 pt-5">
-        <h4 class="mb-1">Adventure starts here 🚀</h4>
-        <p class="mb-6">Make your app management easy and fun!</p>
-
-        <form id="formAuthentication" class="mb-6" action="{{ route('register') }}" method="POST">
-          @csrf
-          <div class="mb-6">
-            <label for="username" class="form-label">Username</label>
-            <input type="text" class="form-control @error('name') is-invalid @enderror" id="username" name="name"
-              placeholder="johndoe" autofocus value="{{ old('name') }}" />
-            @error('name')
-            <span class="invalid-feedback" role="alert">
-              <span class="fw-medium">{{ $message }}</span>
-            </span>
-            @enderror
-          </div>
-          <div class="mb-6">
-            <label for="email" class="form-label">Email</label>
-            <input type="text" class="form-control @error('email') is-invalid @enderror" id="email" name="email"
-              placeholder="john@example.com" value="{{ old('email') }}" />
-            @error('email')
-            <span class="invalid-feedback" role="alert">
-              <span class="fw-medium">{{ $message }}</span>
-            </span>
-            @enderror
-          </div>
-          <div class="mb-6">
-            <label class="form-label">Phone Number</label>
-            <div class="row g-2">
-              <div class="col-4">
-                <input type="text" class="form-control @error('country_code') is-invalid @enderror" id="country_code"
-                  name="country_code" placeholder="CI" value="{{ old('country_code') }}" />
-                @error('country_code')
-                <span class="invalid-feedback" role="alert">
-                  <span class="fw-medium">{{ $message }}</span>
-                </span>
-                @enderror
-              </div>
-              <div class="col-8">
-                <input type="text" class="form-control @error('phone_number') is-invalid @enderror" id="phone_number"
-                  name="phone_number" placeholder="01 XX XXX XXX" value="{{ old('phone_number') }}" />
-                @error('phone_number')
-                <span class="invalid-feedback" role="alert">
-                  <span class="fw-medium">{{ $message }}</span>
-                </span>
-                @enderror
-              </div>
-            </div>
-            <div class="form-text">Country code will be detected automatically.</div>
-          </div>
-          <div class="mb-6 form-password-toggle">
-            <label class="form-label" for="password">Password</label>
-            <div class="input-group input-group-merge @error('password') is-invalid @enderror">
-              <input type="password" id="password" class="form-control @error('password') is-invalid @enderror"
-                name="password" placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
-                aria-describedby="password" />
-              <span class="input-group-text cursor-pointer"><i class="icon-base ti tabler-eye-off"></i></span>
-            </div>
-            @error('password')
-            <span class="invalid-feedback" role="alert">
-              <span class="fw-medium">{{ $message }}</span>
-            </span>
-            @enderror
-          </div>
-          <div class="mb-6 form-password-toggle">
-            <label class="form-label" for="password-confirm">Confirm Password</label>
-            <div class="input-group input-group-merge">
-              <input type="password" id="password-confirm" class="form-control" name="password_confirmation"
-                placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
-                aria-describedby="password" />
-              <span class="input-group-text cursor-pointer"><i class="icon-base ti tabler-eye-off"></i></span>
-            </div>
-          </div>
-          @if (Laravel\Jetstream\Jetstream::hasTermsAndPrivacyPolicyFeature())
-          <div class="mb-6 mt-8">
-            <div class="form-check mb-8 ms-2 @error('terms') is-invalid @enderror">
-              <input class="form-check-input @error('terms') is-invalid @enderror" type="checkbox" id="terms"
-                name="terms" />
-              <label class="form-check-label" for="terms">
-                I agree to
-                <a href="{{ route('policy.show') }}" target="_blank">privacy policy</a> &
-                <a href="{{ route('terms.show') }}" target="_blank">terms</a>
-              </label>
-            </div>
-            @error('terms')
-            <div class="invalid-feedback" role="alert">
-              <span class="fw-medium">{{ $message }}</span>
-            </div>
-            @enderror
-          </div>
-          @endif
-          <button type="submit" class="btn btn-primary d-grid w-100">Sign up</button>
-        </form>
-
-        <p class="text-center">
-          <span>Already have an account?</span>
-          @if (Route::has('login'))
-          <a href="{{ route('login') }}">
-            <span>Sign in instead</span>
-          </a>
-          @endif
-        </p>
-
-        <div class="divider my-6">
-          <div class="divider-text">or</div>
-        </div>
-
-        <div class="d-flex justify-content-center">
-          <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-facebook me-1_5">
-            <i class="icon-base ti tabler-brand-facebook-filled icon-20px"></i>
-          </a>
-
-          <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-twitter me-1_5">
-            <i class="icon-base ti tabler-brand-twitter-filled icon-20px"></i>
-          </a>
-
-          <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-github me-1_5">
-            <i class="icon-base ti tabler-brand-github-filled icon-20px"></i>
-          </a>
-
-          <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-google-plus">
-            <i class="icon-base ti tabler-brand-google-filled icon-20px"></i>
-          </a>
-        </div>
-      </div>
-    </div>
-    <!-- /Register -->
-  </div>
-</div>
+@section('vendor-script')
+@vite(['resources/assets/vendor/libs/@form-validation/popular.js',
+'resources/assets/vendor/libs/@form-validation/bootstrap5.js',
+'resources/assets/vendor/libs/@form-validation/auto-focus.js'])
 @endsection
 
 @section('page-script')
+@vite(['resources/assets/js/pages-auth.js'])
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-  const phoneInput = document.getElementById('phone_number');
-  const countryCodeInput = document.getElementById('country_code');
+document.addEventListener('DOMContentLoaded', function() {
+    // --- 1. CONFIGURATION DU NUMÉRO WHATSAPP (Champ visible) ---
+    const whatsappInput = document.querySelector("#whatsapp_number_visible");
+    let itiWhatsapp;
 
-  const setCountryDefaults = ({ country_calling_code: callingCode, country_code: countryCode } = {}) => {
-    if (countryCodeInput && countryCode) {
-      countryCodeInput.value = countryCode.toUpperCase();
+    if (whatsappInput) {
+        itiWhatsapp = window.intlTelInput(whatsappInput, {
+            initialCountry: "ci",
+            preferredCountries: ["ci", "sn", "bf", "ml", "tg", "bj", "fr"],
+            separateDialCode: true,
+            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js",
+        });
     }
-    if (phoneInput && callingCode && !phoneInput.value) {
-      phoneInput.value = `+${callingCode} `;
-    }
-  };
 
-  if (!countryCodeInput.value || !phoneInput.value) {
-    fetch('https://ipapi.co/json/')
-      .then(response => response.ok ? response.json() : null)
-      .then(data => setCountryDefaults(data))
-      .catch(() => setCountryDefaults());
-  }
+    // --- 2. CONFIGURATION DU NUMÉRO MOBILE MONEY / PHONE (Champ visible) ---
+    const phoneInput = document.querySelector("#phone_number_visible");
+    let itiPhone;
+
+    if (phoneInput) {
+        itiPhone = window.intlTelInput(phoneInput, {
+            initialCountry: "ci",
+            preferredCountries: ["ci", "sn", "bf", "ml", "tg", "bj", "fr"],
+            separateDialCode: true,
+            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js",
+        });
+    }
+
+    // --- 3. GESTION DE LA SOUMISSION DU FORMULAIRE ---
+    const form = document.querySelector("#formAuthentication");
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Gestion WhatsApp -> vers 'whatsapp_number'
+            if (itiWhatsapp) {
+                const fullNumberWA = itiWhatsapp.getNumber();
+                
+                // Champ caché pour whatsapp_number
+                let hiddenWhatsapp = document.querySelector('input[name="whatsapp_number"]');
+                if (!hiddenWhatsapp) {
+                    hiddenWhatsapp = document.createElement('input');
+                    hiddenWhatsapp.type = 'hidden';
+                    hiddenWhatsapp.name = 'whatsapp_number';
+                    form.appendChild(hiddenWhatsapp);
+                }
+                hiddenWhatsapp.value = fullNumberWA;
+            }
+
+            // Gestion Mobile Money -> vers 'phone_number'
+            if (itiPhone) {
+                const fullNumberPhone = itiPhone.getNumber();
+                
+                // Champ caché pour phone_number
+                let hiddenPhone = document.querySelector('input[name="phone_number"]');
+                if (!hiddenPhone) {
+                    hiddenPhone = document.createElement('input');
+                    hiddenPhone.type = 'hidden';
+                    hiddenPhone.name = 'phone_number';
+                    form.appendChild(hiddenPhone);
+                }
+                hiddenPhone.value = fullNumberPhone;
+            }
+
+            // Soumission du formulaire
+            this.submit();
+        });
+    }
+});
 </script>
+@endsection
+
+@section('content')
+<div class="container-xxl">
+  <div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="authentication-inner py-6">
+      <!-- Register Card -->
+      <div class="card">
+        <div class="card-body">
+          <!-- Logo -->
+          <div class="app-brand justify-content-center mb-6">
+            <a href="{{ url('/') }}" class="app-brand-link">
+              <span class="app-brand-logo demo">@include('_partials.macros')</span>
+              <span class="app-brand-text demo text-heading fw-bold">{{ config('variables.templateName') }}</span>
+            </a>
+          </div>
+          <!-- /Logo -->
+          <h4 class="mb-1 text-center">L'aventure commence ici 🚀</h4>
+          <p class="mb-6 text-center">Créez votre compte pour explorer nos services !</p>
+
+          <form id="formAuthentication" class="mb-4" action="{{ route('register') }}" method="POST">
+            @csrf
+            
+            <div class="row">
+                <!-- Name (Nom d'utilisateur) -->
+                <div class="col-md-6 mb-6 form-control-validation">
+                  <label for="name" class="form-label">Nom d'utilisateur</label>
+                  <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" placeholder="Entrez votre nom d'utilisateur" autofocus value="{{ old('name') }}" required />
+                  @error('name')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                  @enderror
+                </div>
+
+                <!-- Email -->
+                <div class="col-md-6 mb-6 form-control-validation">
+                  <label for="email" class="form-label">Email</label>
+                  <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" placeholder="Entrez votre email" value="{{ old('email') }}" required />
+                  @error('email')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                  @enderror
+                </div>
+
+                <!-- WhatsApp Number -->
+                <div class="col-md-6 mb-6 form-control-validation">
+                  <label for="whatsapp_number_visible" class="form-label text-success fw-bold">Numéro WhatsApp (Code d'activation)</label>
+                  <div class="input-group">
+                    <!-- Nom 'whatsapp_raw' pour éviter conflit avec le champ caché 'whatsapp_number' -->
+                    <input type="tel" id="whatsapp_number_visible" class="form-control @error('whatsapp_number') is-invalid @enderror" name="whatsapp_number" value="{{ old('whatsapp_number') }}" required style="width: 100%;" />
+                    @error('whatsapp_number')
+                      <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                  </div>
+                </div>
+
+                <!-- Phone Number (Mobile Money) -->
+                <div class="col-md-6 mb-6 form-control-validation">
+                  <label for="phone_number_visible" class="form-label">Numéro Téléphone</label>
+                  <div class="input-group">
+                    <!-- Nom 'phone_raw' pour éviter conflit avec le champ caché 'phone_number' -->
+                    <input type="tel" id="phone_number_visible" class="form-control @error('phone_number') is-invalid @enderror" name="phone_number" value="{{ old('phone_number') }}" required style="width: 100%;" />
+                    @error('phone_number')
+                      <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                  </div>
+                </div>
+
+                <!-- Password -->
+                <div class="col-md-6 mb-6 form-password-toggle form-control-validation">
+                  <label class="form-label" for="password">Mot de passe</label>
+                  <div class="input-group input-group-merge @error('password') is-invalid @enderror">
+                    <input type="password" id="password" class="form-control @error('password') is-invalid @enderror" name="password" 
+                      placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" 
+                      aria-describedby="password" required />
+                    <span class="input-group-text cursor-pointer"><i class="icon-base ti tabler-eye-off"></i></span>
+                  </div>
+                  @error('password')
+                    <span class="invalid-feedback">{{ $message }}</span>
+                  @enderror
+                </div>
+
+                <!-- Password Confirmation -->
+                <div class="col-md-6 mb-6 form-password-toggle form-control-validation">
+                  <label class="form-label" for="password_confirmation">Confirmer le mot de passe</label>
+                  <div class="input-group input-group-merge">
+                    <input type="password" id="password_confirmation" class="form-control" name="password_confirmation" 
+                      placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" 
+                      aria-describedby="password" required />
+                    <span class="input-group-text cursor-pointer"><i class="icon-base ti tabler-eye-off"></i></span>
+                  </div>
+                </div>
+            </div>
+
+            <!-- Terms -->
+            <div class="my-8">
+              <div class="form-check mb-0 ms-2">
+                <input class="form-check-input" type="checkbox" id="terms-conditions" name="terms" required />
+                <label class="form-check-label" for="terms-conditions">
+                  J'accepte les <a href="javascript:void(0);">conditions d'utilisation & politique de confidentialité</a>
+                </label>
+              </div>
+            </div>
+
+            <!-- Bouton centré et moins large -->
+            <div class="d-flex justify-content-center">
+              <button class="btn btn-primary px-5" type="submit">S'inscrire</button>
+            </div>
+          </form>
+
+          <p class="text-center">
+            <span>Déjà un compte ?</span>
+            <a href="{{ route('login') }}">
+              <span>Connectez-vous</span>
+            </a>
+          </p>
+
+        </div>
+      </div>
+      <!-- Register Card -->
+    </div>
+  </div>
+</div>
 @endsection

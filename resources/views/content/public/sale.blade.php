@@ -82,7 +82,7 @@ $pageConfigs = ['myLayout' => 'blank'];
 
   .pricing-area > div {
     flex: 0 0 calc(50% - 12px);
-    min-width: 150px;
+    min-width: 160px;
   }
 
   .price-input {
@@ -139,8 +139,7 @@ $pageConfigs = ['myLayout' => 'blank'];
   .badge-footer {
     margin-top: auto;
     display: flex;
-    /*justify-content: flex-center;*/
-    justify-content: center;
+    justify-content: flex-end;
   }
 
   .badge-cta {
@@ -165,28 +164,33 @@ $pageConfigs = ['myLayout' => 'blank'];
     max-width: 260px;
     margin-left: auto;
     margin-right: auto;
-}
+  }
 
-.purchase-actions {
+  .purchase-actions {
     display: none;
-}
+  }
 
-.purchase-actions.is-visible {
+  .purchase-actions.is-visible {
     display: block;
-}
+  }
 
-.purchase-actions-centered {
+  .purchase-actions-centered {
     display: flex;
     justify-content: center;
-}
+  }
+
+  .purchase-actions-centered.is-visible {
+    display: flex;
+    justify-content: center;
+  }
 </style>
 @endsection
 
 @section('content')
 <div class="sale-shell">
   <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-lg-7 col-md-9">
+      <div class="row justify-content-center">
+          <div class="col-lg-7 col-md-9">
         <div class="sale-card">
           <div class="text-center">
             <h2 class="sale-title" style="color: {{ optional($settings)->primary_color ?? '#1f2937' }}">
@@ -209,68 +213,49 @@ $pageConfigs = ['myLayout' => 'blank'];
             <input type="hidden" name="login_url" value="{{ request('login_url') }}">
             <input type="hidden" name="router_id" value="{{ request('router_id') }}">
             @if($profiles->isNotEmpty())
-              <div class="pricing-title">Nos Pass</div>
-              <div class="pricing-area">
-                @foreach($profiles as $profile)
-                  @php
-                    $commissionPayer = optional($settings)->commission_payer ?? 'seller';
+              @php
+                $commissionPayer = optional($settings)->commission_payer ?? 'seller';
+                $badgeClasses = ['badge-blue', 'badge-purple', 'badge-pink', 'badge-emerald'];
+                $renderProfiles = function ($items, $sectionTitle, $offset = 0) use ($commissionPayer, $commissionPercent, $badgeClasses) {
+                  if ($items->isEmpty()) {
+                    return;
+                  }
+
+                  echo '<div class="pricing-title">' . e($sectionTitle) . '</div>';
+                  echo '<div class="pricing-area">';
+                  foreach ($items as $index => $profile) {
                     $commissionAmount = round(($profile->price * $commissionPercent) / 100, 2);
                     $displayPrice = $commissionPayer === 'client'
                       ? $profile->price + $commissionAmount
                       : $profile->price;
-                    $badgeClasses = ['badge-blue', 'badge-purple', 'badge-pink', 'badge-emerald'];
-                    $badgeClass = $badgeClasses[$loop->index % count($badgeClasses)];
-                  @endphp
-                  <div>
-                    <input
-                      name="profile_id"
-                      class="price-input"
-                      type="radio"
-                      value="{{ $profile->id }}"
-                      id="profile{{ $profile->id }}"
-                      required
-                    >
-                    <label class="price-badge {{ $badgeClass }}" for="profile{{ $profile->id }}">
-                      <div class="badge-header">
-                        <span class="badge-time">{{ $profile->name }}</span>
-                        <span class="badge-val">
-                          {{ $displayPrice == 0 ? 'Gratuit' : number_format($displayPrice, 0, ',', ' ') . ' FCFA' }}
-                        </span>
-                      </div>
-                      <ul class="badge-list">
-                        <li>{{ $profile->rate_limit ?? 'Débit standard' }}</li>
-                        <li>{{ $profile->data_limit ? round($profile->data_limit / (1024*1024*1024), 2) . ' Go' : 'Données illimitées' }}</li>
-                        <li>
-                          @if ($commissionPayer === 'client' && $commissionAmount > 0)
-                            Frais: {{ number_format($commissionAmount, 0, ',', ' ') }} FCFA
-                          @elseif ($commissionAmount > 0)
-                            Frais: pris en charge
-                          @else
-                            Frais: aucun
-                          @endif
-                        </li>
-                      </ul>
-                      <div class="badge-footer">
-                        <span class="badge-cta">Acheter</span>
-                      </div>
-                    </label>
-                  </div>
-                @endforeach
-              </div>
+                    $badgeClass = $badgeClasses[($offset + $index) % count($badgeClasses)];
+
+                    echo view('content.public.partials.sale_profile_badge', [
+                      'profile' => $profile,
+                      'badgeClass' => $badgeClass,
+                      'commissionAmount' => $commissionAmount,
+                      'commissionPayer' => $commissionPayer,
+                      'displayPrice' => $displayPrice,
+                    ])->render();
+                  }
+                  echo '</div>';
+                };
+              @endphp
+
+              @php $renderProfiles($hourProfiles, 'PASS HEURES', 0); @endphp
+              @php $renderProfiles($dataProfiles, 'PASS DATA', $hourProfiles->count()); @endphp
             @else
               <div class="alert alert-warning mt-4">Aucun forfait disponible.</div>
             @endif
-
+            
             @if($profiles->isNotEmpty())
               <div class="customer-card purchase-actions">
-                  <div class="col-lg-12">
-                    <input type="hidden" name="customer_name" value="{{ $user->name }}">
-                    <label class="form-label">Entrez votre numéro de téléphone</label>
-                    <input type="tel" inputmode="numeric" inputmode="numeric" name="customer_number" class="form-control" placeholder="Numéro de téléphone" required>
-                  </div>
-                </div>
-              <div class="text-center mt-4 purchase-actions">
-                <button type="submit" class="btn btn-primary btn-lg"
+                <input type="hidden" name="customer_name" value="{{ $user->name }}">
+                <label class="form-label">Votre numéro</label>
+                <input type="text" name="customer_number" class="form-control" placeholder="0700000000" required>
+              </div>
+              <div class="mt-4 purchase-actions purchase-actions-centered">
+                <button id="purchaseSubmitBtn" type="submit" class="btn btn-primary btn-lg"
                   style="background-color: {{ optional($settings)->primary_color ?? '#1f2937' }}; border-color: {{ optional($settings)->primary_color ?? '#1f2937' }};">
                   Payer avec Money Fusion
                 </button>
@@ -289,12 +274,25 @@ $pageConfigs = ['myLayout' => 'blank'];
   document.addEventListener('DOMContentLoaded', () => {
     const profileInputs = document.querySelectorAll('.price-input');
     const purchaseActions = document.querySelectorAll('.purchase-actions');
+    const purchaseSubmitBtn = document.getElementById('purchaseSubmitBtn');
+
+    const updateSubmitButtonText = () => {
+      if (!purchaseSubmitBtn) return;
+      const selected = document.querySelector('.price-input:checked');
+      const isFree = selected ? selected.dataset.isFree === '1' : false;
+      purchaseSubmitBtn.textContent = isFree ? 'Obtenir mon code' : 'Payer avec Money Fusion';
+    };
 
     const togglePurchaseActions = () => {
       const hasSelection = Array.from(profileInputs).some(input => input.checked);
       purchaseActions.forEach(section => {
-        section.classList.toggle('is-visible', hasSelection);
+        if (hasSelection) {
+          section.classList.add('is-visible');
+        } else {
+          section.classList.remove('is-visible');
+        }
       });
+      updateSubmitButtonText();
     };
 
     profileInputs.forEach(input => {

@@ -1,109 +1,112 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\VpnServer;
 use Illuminate\Http\Request;
-use Yajra\DataTables\DataTables;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 use RouterOS\Client;
 use RouterOS\Config;
-use RouterOS\Query;
 
 class VpnServerController extends Controller
 {
-    public function index(Request $request)
+    // public function index(Request $request)
+    public function index()
     {
-        if ($request->ajax()) {
-            $data = VpnServer::latest();
-            return DataTables::of($data)
-                ->addColumn('action', function($row){
-                    return '
-                        <div class="d-inline-block">
-                            <a href="javascript:;" class="btn btn-sm btn-icon item-edit" data-id="'.$row->id.'"><i class="icon-base ti tabler-edit"></i></a>
-                            <a href="javascript:;" class="btn btn-sm btn-icon item-delete" data-id="'.$row->id.'"><i class="icon-base ti tabler-trash"></i></a>
-                        </div>';
-                })
-                ->rawColumns(['action'])
-                ->make(true);
-        }
-        return view('content.admin.vpn_servers.index');
+        $servers = VpnServer::withCount('accounts')->latest()->get();
+        return view('content.admin.vpn_servers.index', compact('servers'));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'ip_address' => 'required|ipv4',
-            'api_user' => 'required|string|max:255',
-            'api_password' => 'required|string|min:6',
-            'api_port' => 'required|integer',
-            'domain_name' => 'nullable|string',
-            'local_ip_address' => 'nullable|ipv4',
-            'ip_range' => 'nullable|string',
-            'account_limit' => 'required|integer|min:1',
-        ]);
-        $validated['is_active'] = $request->has('is_active');
+        $data = $this->validateServer($request, true);
+        $data['supported_protocols'] = ["l2tp", "ovpn", "sstp", "wireguard"];
+        $data['is_online'] = false;
+        $data['is_active'] = true;
+        $data['local_ip_address'] = $data['gateway_ip'];
+        $data['ip_range'] = $data['ip_pool'];
+        $data['account_limit'] = $data['max_accounts'];
 
-        VpnServer::create($validated);
-        return response()->json(['success' => 'Serveur VPN ajouté avec succès.']);
-    }
-    
-    public function update(Request $request, VpnServer $vpnServer)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'ip_address' => 'required|ipv4',
-            'api_user' => 'required|string|max:255',
-            'api_password' => 'nullable|string|min:6',
-            'api_port' => 'required|integer',
-            'domain_name' => 'nullable|string',
-            'local_ip_address' => 'nullable|ipv4',
-            'ip_range' => 'nullable|string',
-            'account_limit' => 'required|integer|min:1',
-        ]);
-        $validated['is_active'] = $request->has('is_active');
+        VpnServer::create($data);
 
-        if (!$request->filled('api_password')) {
-            unset($validated['api_password']);
-        }
-
-        $vpnServer->update($validated);
-        return response()->json(['success' => 'Serveur VPN mis à jour avec succès.']);
+        return redirect()->route('admin.vpn-servers.index')->with('success', 'Serveur configuré avec succès !');
     }
 
     public function edit(VpnServer $vpnServer)
     {
-        return response()->json($vpnServer);
+        return view('content.admin.vpn_servers.edit', compact('vpnServer'));
+    }
+    
+
+    public function update(Request $request, VpnServer $vpnServer)
+    {
+        $data = $this->validateServer($request, false);
+
+        if (!$request->filled('api_password')) {
+            unset($data['api_password']);
+        }
+        
+        $data['local_ip_address'] = $data['gateway_ip'];
+        $data['ip_range'] = $data['ip_pool'];
+        $data['account_limit'] = $data['max_accounts'];
+
+        $vpnServer->update($data);
+        return redirect()->route('admin.vpn-servers.index')->with('success', 'Serveur mis à jour avec succès.');
+    }
+
+    public function testConnection(Request $request)
+    {
+        $request->validate([
+            'server_id' => 'required|exists:vpn_servers,id',
+        ]);
+
+        $server = VpnServer::findOrFail($request->server_id);
+
+        try {
+            $config = new Config([
+                'host' => $server->ip_address,
+                'user' => $server->api_user,
+                'pass' => $server->api_password,
+                'port' => (int) $server->api_port,
+                'timeout' => 5,
+            ]);
+
+            $client = new Client($config);
+            $identity = $client->query('/system/identity/print')->read();
+
+            $server->update(['is_online' => true]);
+
+            return back()->with('success', 'Connexion RÉUSSIE ! Routeur : ' . ($identity[0]['name'] ?? 'Inconnu'));
+        } catch (\Exception $e) {
+            $server->update(['is_online' => false]);
+            Log::error("Erreur MikroTik {$server->ip_address}: " . $e->getMessage());
+            return back()->with('error', 'ÉCHEC de connexion : ' . $e->getMessage());
+        }
     }
 
     public function destroy(VpnServer $vpnServer)
     {
         $vpnServer->delete();
-        return response()->json(['success' => 'Serveur VPN supprimé avec succès.']);
+        return back()->with('success', 'Serveur supprimé.');
     }
 
-    public function testConnection(Request $request)
+    private function validateServer(Request $request, bool $isStore): array
     {
-        $data = $request->validate([
-            'ip_address' => 'required|ipv4',
-            'api_user' => 'required|string',
-            'api_password' => 'required|string',
-            'api_port' => 'required|integer',
-        ]);
+        $passwordRule = $isStore ? 'required|string' : 'nullable|string';
 
-        try {
-            $config = new Config([
-                'host' => $data['ip_address'],
-                'user' => $data['api_user'],
-                'pass' => $data['api_password'],
-                'port' => (int) $data['api_port'],
-                'timeout' => 5,
-            ]);
-            $client = new Client($config);
-            return response()->json(['success' => 'Connexion réussie !']);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Échec de la connexion.'], 422);
-        }
+        return $request->validate([
+            'name' => 'required|string|max:255',
+            'ip_address' => 'required|ip',
+            'domain_name' => 'nullable|string|max:255',
+            'profile_name' => 'required|string|max:255',
+            'api_user' => 'required|string|max:255',
+            'api_password' => $passwordRule,
+            'api_port' => 'required|integer',
+            'gateway_ip' => 'required|ip',
+            'ip_pool' => 'required|string|max:255',
+            'max_accounts' => 'required|integer|min:1',
+            'location' => 'nullable|string|max:255',
+        ]);
     }
 }

@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             ExistingUserWalletSeeder::class,
         ]);
+        // Message de confirmation
+        $this->command->info('✅ Seed exécuté avec succès ! Base de données initialisée.');
     }
 
 }

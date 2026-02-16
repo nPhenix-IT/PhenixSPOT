@@ -16,6 +16,7 @@ class UserSeeder extends Seeder
             'name' => 'Super Admin',
             'email' => 'superadmin@phenixspot.com',
             'password' => Hash::make('password123'),
+            'slug' => 'superdmin',
         ]);
         $this->createTeam($superAdmin);
         $superAdmin->assignRole('Super-admin');
@@ -25,6 +26,7 @@ class UserSeeder extends Seeder
             'name' => 'Admin',
             'email' => 'admin@phenixspot.com',
             'password' => Hash::make('password123'),
+            'slug' => 'admin',
         ]);
         $this->createTeam($admin);
         $admin->assignRole('Admin');
@@ -34,6 +36,7 @@ class UserSeeder extends Seeder
             'name' => 'Client Test',
             'email' => 'user@phenixspot.com',
             'password' => Hash::make('password123'),
+            'slug' => 'user',
         ]);
         $this->createTeam($user);
         $user->assignRole('User');

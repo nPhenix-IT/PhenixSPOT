@@ -51,7 +51,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Nom</th>
-                    <th>Adresse IP</th>
+                    <th>Adresse Public RADIUS</th>
                     <th>Fabricant</th>
                     <th>Actions</th>
                 </tr>
@@ -69,17 +69,29 @@
     <div class="offcanvas-body mx-0 flex-grow-0 pt-0 h-100">
       <form class="add-new-router-form pt-0" id="addNewRouterForm">
         <input type="hidden" name="id" id="router_id">
-        <div class="mb-3"><label class="form-label">Nom du routeur</label><input type="text" class="form-control" name="name" /></div>
-        <div class="mb-3"><label class="form-label">Adresse IP</label><input type="text" class="form-control" name="ip_address" /></div>
-        <div class="mb-3">
-            <label class="form-label">Fabricant</label>
-            <select name="brand" class="form-select">
-                <option value="MikroTik">MikroTik</option>
-                <option value="TP-Link">TP-Link</option>
-                <option value="Ubiquiti">Ubiquiti</option>
-                <option value="Cisco">Cisco</option>
-                <option value="Autres">Autres</option>
-            </select>
+        <div class="mb-4">
+          <h6 class="mb-3 text-primary">Configuration RADIUS</h6>
+          <div class="mb-3"><label class="form-label">Nom du routeur</label><input type="text" class="form-control" name="name" /></div>
+          <div class="mb-3"><label class="form-label">Adresse Public (AAA)</label><input type="text" class="form-control" name="ip_address" placeholder="60.20.11.1 ou vpn.phenixspot.com" /></div>
+          <div class="mb-3">
+              <label class="form-label">Fabricant</label>
+              <select name="brand" class="form-select">
+                  <option value="MikroTik">MikroTik</option>
+                  <option value="TP-Link">TP-Link</option>
+                  <option value="Ubiquiti">Ubiquiti</option>
+                  <option value="Cisco">Cisco</option>
+                  <option value="Autres">Autres</option>
+              </select>
+          </div>
+        </div>
+
+        <div class="mb-4 border-top pt-3">
+          <h6 class="mb-3 text-primary">Configuration API</h6>
+          <div class="mb-3"><label class="form-label">API Adresse</label><input type="text" class="form-control" name="api_address" placeholder="192.168.88.1 ou vpn.phenixspot.com" /></div>
+          <div class="mb-3"><label class="form-label">API Port</label><input type="number" class="form-control" name="api_port" placeholder="8728" min="1" max="65535" /></div>
+          <div class="mb-3"><label class="form-label">API User</label><input type="text" class="form-control" name="api_user" placeholder="admin" /></div>
+          <div class="mb-3"><label class="form-label">API Password</label><input type="text" class="form-control" name="api_password" placeholder="admin" /></div>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="test-router-api-btn"><i class="icon-base ti tabler-plug-connected me-1"></i> Test rapide</button>
         </div>
         <div class="mb-3"><label class="form-label">Description</label><textarea name="description" class="form-control"></textarea></div>
         <button type="submit" class="btn btn-primary me-sm-3 me-1">Enregistrer</button>

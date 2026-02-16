@@ -14,9 +14,10 @@ class Router extends Model
         'radius_secret',
         'brand',
         'description',
-        'latitude',
-        'longitude',
-        'status',
+        'api_address',
+        'api_port',
+        'api_user',
+        'api_password',
     ];
     
     protected $casts = [

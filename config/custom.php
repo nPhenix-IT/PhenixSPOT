@@ -17,7 +17,7 @@ return [
     'displayCustomizer' => false, // Display customizer UI: true (default) or false
     'contentLayout' => 'wide', // Layout size: 'compact' (container-xxl) or 'wide' (container-fluid)
     'navbarType' => 'sticky', // Navbar type: 'sticky', 'static', or 'hidden' (only for vertical layout)
-    'footerFixed' => false, // Footer fixed position: true/false (false by default)
+    'footerFixed' => true, // Footer fixed position: true/false (false by default)
     'menuFixed' => true, // Menu fixed position: true (default) or false (only for vertical layout)
     'menuCollapsed' => false, // Menu collapsed state: true/false (false by default)
     'headerType' => 'fixed', // Header type: 'static' or 'fixed' (only for horizontal layout)

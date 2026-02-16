@@ -68,10 +68,20 @@ class RouterController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'ip_address' => ['required', 'ipv4', Rule::unique('routers')->ignore($request->id)],
+            'ip_address' => ['required', 'string', 'max:255', Rule::unique('routers')->ignore($request->id)],
             'brand' => ['required', Rule::in(['MikroTik', 'TP-Link', 'Ubiquiti', 'Cisco', 'Autres'])],
+            'api_address' => 'nullable|string|max:255',
+            'api_port' => 'nullable|integer|min:1|max:65535',
+            'api_user' => 'nullable|string|max:255',
+            'api_password' => 'nullable|string|max:255',
             'description' => 'nullable|string',
         ]);
+
+        foreach (['ip_address', 'api_address'] as $hostField) {
+            if (!empty($validated[$hostField]) && !$this->isValidHostOrIp($validated[$hostField])) {
+                return response()->json(['error' => "Le champ {$hostField} doit être une IP ou un nom de domaine valide."], 422);
+            }
+        }
 
         $activeServer = RadiusServer::where('is_active', true)->first();
         if (!$activeServer) {
@@ -91,6 +101,39 @@ class RouterController extends Controller
         });
 
         return response()->json(['success' => 'Routeur enregistré et synchronisé avec RADIUS avec succès.']);
+    }
+
+    public function testApi(Request $request)
+    {
+        $data = $request->validate([
+            'api_address' => 'required|string|max:255',
+            'api_port' => 'required|integer|min:1|max:65535',
+        ]);
+
+        if (!$this->isValidHostOrIp($data['api_address'])) {
+            return response()->json(['success' => false, 'message' => 'Adresse API invalide.'], 422);
+        }
+
+        $connection = @fsockopen($data['api_address'], (int) $data['api_port'], $errno, $errstr, 3);
+
+        if ($connection) {
+            fclose($connection);
+            return response()->json(['success' => true, 'message' => 'Connexion API réussie.']);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => "Connexion échouée ({$errno}) {$errstr}",
+        ], 422);
+    }
+
+    private function isValidHostOrIp(string $value): bool
+    {
+        if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            return true;
+        }
+
+        return (bool) preg_match('/^(?=.{1,253}$)(?!-)(?:[a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$/', $value);
     }
 
     public function edit(Router $router)

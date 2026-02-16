@@ -29,10 +29,16 @@ Route::get('/', [DashboardController::class, 'index'])->middleware('auth')->name
 // Changement de langue
 Route::get('/lang/{locale}', [LanguageController::class, 'swap']);
 
+
+// VPN script loader/core endpoints (tokenized for MikroTik fetch)
+Route::get('vpn/scripts/{account}/loader', [VpnAccountController::class, 'scriptLoader'])->name('vpn.script.loader');
+Route::get('vpn/scripts/{account}/core', [VpnAccountController::class, 'scriptCore'])->name('vpn.script.core');
+
 // Routes Utilisateur
 Route::middleware(['auth'])->name('user.')->group(function () {
     Route::resource('routers', RouterController::class);
-    Route::resource('vouchers', VoucherController::class);
+    // Route::resource('vouchers', VoucherController::class);
+    Route::resource('vouchers', VoucherController::class)->except(['show']);
     Route::resource('profiles', ProfileController::class);
     Route::post('vouchers/toggle-status/{voucher}', [VoucherController::class, 'toggleStatus'])->name('vouchers.toggle-status');
     Route::post('vouchers/print-by-profile', [VoucherController::class, 'printByProfile'])->name('vouchers.print-by-profile');
@@ -44,6 +50,14 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::post('wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
     Route::get('payment-gateways', [PaymentGatewayController::class, 'index'])->name('payment-gateways.index');
     Route::post('payment-gateways', [PaymentGatewayController::class, 'store'])->name('payment-gateways.store');
+    Route::get('vpn', [VpnAccountController::class, 'index'])->name('vpn.index');
+    Route::post('vpn', [VpnAccountController::class, 'store'])->name('vpn.store');
+    Route::put('vpn/{id}', [VpnAccountController::class, 'update'])->name('vpn.update');
+    Route::delete('vpn/{vpnAccount}', [VpnAccountController::class, 'destroy'])->name('vpn.destroy');
+    Route::post('vpn/check-status/{id}', [VpnAccountController::class, 'checkOnlineStatus'])->name('vpn.check-status');
+    Route::post('vpn/renew/{id}', [VpnAccountController::class, 'renew'])->name('vpn.renew');
+    Route::put('vpn/update-ports/{id}', [VpnAccountController::class, 'updatePorts'])->name('vpn.update_ports');
+    Route::get('vpn/payment/callback', [VpnAccountController::class, 'moneyfusionCallback'])->name('vpn.payment-callback');
     Route::resource('vpn-accounts', VpnAccountController::class);
     Route::get('plans', [PricingController::class, 'index'])->name('plans.index');
     Route::get('payment/{plan}/{duration}', [PricingController::class, 'payment'])->name('payment');
@@ -53,15 +67,14 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::post('profile/notifications/test-telegram', [UserProfileController::class, 'testTelegram'])->name('profile.notifications.test-telegram');
     Route::get('sales-page', [SalePageController::class, 'edit'])->name('sales-page.edit');
     Route::post('sales-page', [SalePageController::class, 'update'])->name('sales-page.update');
+    Route::get('sales-page/download-login-template', [SalePageController::class, 'downloadLoginTemplate'])->name('sales-page.download-login-template');
+    Route::get('sales-page/login-template-preview', [SalePageController::class, 'previewLoginTemplate'])->name('sales-page.login-template-preview');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
-    Route::get('sales-page/download-login-template', [SalePageController::class, 'downloadLoginTemplate'])->name('sales-page.download-login-template');
-    Route::get('sales-page/login-template-preview', [SalePageController::class, 'previewLoginTemplate'])->name('sales-page.login-template-preview');
     Route::get('routers/{router}/generate-script', [RouterController::class, 'generateScript'])->name('routers.generate-script');
+    Route::post('routers/test-api', [RouterController::class, 'testApi'])->name('routers.test-api');
     Route::resource('routers', RouterController::class);
-    
-    Route::match(['get', 'post'], '/reports', [ReportController::class, 'index'])->name('user.reports.index');
 });
 
 // Routes Admin
@@ -92,4 +105,3 @@ Route::prefix('payment')->name('public.payment.')->group(function () {
 // --- Route pour le Webhook FreeRADIUS ---
 // Cette route doit être accessible publiquement par le serveur RADIUS.
 Route::post('/radius/webhook', [RadiusWebhookController::class, 'handle'])->name('radius.webhook');
-

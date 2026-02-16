@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
 use App\Models\Wallet;
+use Illuminate\Support\Str; // ✅ Pour manipulation string
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -38,12 +39,41 @@ class CreateNewUser implements CreatesNewUsers
                 'phone_number' => $input['phone_number'],
                 'country_code' => $input['country_code'],
                 'password' => Hash::make($input['password']),
+                'slug' => $this->generateSlug($input['name']), // ✅ Nouveau slug
             ]), function (User $user) {
                 $this->createTeam($user);
-                $user->assignRole('User'); // Assigner le rôle
-                Wallet::create(['user_id' => $user->id]); // Créer le portefeuille
+                $user->assignRole('User');
+                Wallet::create(['user_id' => $user->id]);
             });
         });
+    }
+
+    /**
+     * Generate slug: 4 first characters of name + 3 random alphanumeric characters
+     * Example: johnA7K
+     */
+    protected function generateSlug(string $name): string
+    {
+        // Nettoyer le nom (enlever espaces et caractères spéciaux)
+        $cleanName = Str::slug($name, '');
+
+        // Prendre les 4 premiers caractères (ou moins si nom court)
+        $prefix = Str::lower(Str::substr($cleanName, 0, 4));
+
+        // Sécurité si nom < 4 caractères
+        if (strlen($prefix) < 4) {
+            $prefix = str_pad($prefix, 4, 'x');
+        }
+
+        do {
+            // Générer 3 caractères alphanumériques aléatoires
+            $random = Str::upper(Str::random(3));
+
+            $slug = $prefix . $random;
+
+        } while (User::where('slug', $slug)->exists());
+
+        return $slug;
     }
 
     /**

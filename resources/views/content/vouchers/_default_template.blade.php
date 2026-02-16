@@ -70,7 +70,7 @@
 <tr>
 <td style="background:#e63d00;color:#666;padding:0px;" valign="top" colspan="2">
 <div style="text-align:left;color:#fff;font-size:9px;font-weight:bold;margin:0px;padding:2.5px;"><i class="icon-base ti tabler-device-mobile"></i>
-</svg> &nbsp;<b></b>
+</svg> &nbsp;<b>@{{ contact }}</b>
 </div>
 </td>
 </tr>

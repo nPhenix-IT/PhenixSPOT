@@ -82,6 +82,49 @@ class MoneyFusionService
 
         return $response->json(); // Retourne ['statut' => true, 'token' => '...', 'url' => '...']
     }
+ 
+   public function initiateSimplePayment(
+       User $user,
+       int $amount,
+       string $transactionId,
+       string $returnUrl,
+       string $webhookUrl,
+       string $label = 'Compte VPN supplémentaire'
+   ): array {
+       $payload = [
+           'totalPrice' => $amount,
+           'article' => [[
+               'name' => $label,
+               'price' => $amount,
+           ]],
+           'nomclient' => $user->name,
+           'numeroSend' => $user->phone_number ?? '00000000',
+           'return_url' => $returnUrl,
+           'webhook_url' => $webhookUrl,
+           'personal_Info' => [[
+               'orderId' => $transactionId,
+               'userId' => $user->id,
+           ]],
+       ];
+
+       $response = Http::withHeaders([
+           'Content-Type' => 'application/json',
+           'Accept' => 'application/json',
+       ])->post($this->apiUrl, $payload);
+
+       if ($response->successful()) {
+           $data = $response->json();
+           if (($data['statut'] ?? false) === true || isset($data['url'])) {
+               return $data;
+           }
+       }
+
+       Log::error('MoneyFusion simple payment error', [
+           'status' => $response->status(),
+           'body' => $response->body(),
+       ]);
+       throw new Exception('Impossible d\'initier le paiement MoneyFusion.');
+   }
 
     public function isPaid(array $statusData): bool
     {

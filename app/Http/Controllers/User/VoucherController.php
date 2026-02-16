@@ -118,13 +118,12 @@ class VoucherController extends Controller
     private function generatePrintView($vouchers)
     {
         $user = Auth::user();
-        $templateContent = $user->template->content ?? file_get_contents(resource_path('views/content/vouchers/_default_template.blade.php'));
-        
-        $dnsName = "hotspot.phenix"; 
+        $templateContent = optional($user->template)->content ?? file_get_contents(resource_path('views/content/vouchers/_default_template.blade.php'));
+        $dnsName = $user?->salePageSetting?->login_dns; 
 
         $output = '';
         foreach ($vouchers as $voucher) {
-            $loginUrl = "http://" . $dnsName . "/login?username=" . $voucher->code;
+            $loginUrl = "http://" . $dnsName . "/login?username=" . $voucher->code . '&password=' .$voucher->code;
             $qrCodeSvg = Quar::eye('rounded')->size(80)->gradient(20, 192, 241 , 164, 29, 52 , 'radial')->generate($loginUrl);
 
             $voucherHtml = $templateContent;
@@ -133,6 +132,7 @@ class VoucherController extends Controller
             $voucherHtml = str_replace('@{{ price }}', $voucher->profile->price == 0 ? 'Gratuit' : number_format($voucher->profile->price, 0, ',', ' ') . ' FCFA', $voucherHtml);
             $voucherHtml = str_replace('@{{ validity }}', $this->formatSeconds($voucher->profile->validity_period), $voucherHtml);
             $voucherHtml = str_replace('@{{ data_limit }}', $this->formatBytes($voucher->profile->data_limit), $voucherHtml);
+            $voucherHtml = str_replace('@{{ contact }}', $user->phone_number ?? 'N/A', $voucherHtml);
             $voucherHtml = str_replace('@{{ qrcode }}', $qrCodeSvg, $voucherHtml);
             $output .= $voucherHtml;
         }
@@ -142,7 +142,7 @@ class VoucherController extends Controller
 
     public function getTemplate()
     {
-        $content = Auth::user()->template->content ?? file_get_contents(resource_path('views/content/vouchers/_default_template.blade.php'));
+        $content = optional(Auth::user()->template)->content ?? file_get_contents(resource_path('views/content/vouchers/_qrcode_template.blade.php'));
         return response()->json(['template' => $content]);
     }
 

@@ -65,7 +65,8 @@
             @endforeach
         </select>
         <button type="button" class="btn btn-secondary" id="print-by-profile-btn" disabled><i class="icon-base ti tabler-printer me-1"></i> Imprimer</button>
-        <button type="button" class="btn btn-info" id="edit-template-btn"><i class="icon-base ti tabler-edit me-1"></i> Template</button>
+        <button type="button" class="btn btn-outline-secondary" id="print-selected-btn" disabled><i class="icon-base ti tabler-printer me-1"></i> Imprimer sélection</button>
+        <button type="button" class="btn btn-info" id="edit-template-btn" data-template-url="/vouchers/template"><i class="icon-base ti tabler-edit me-1"></i> Template</button>
         <button type="button" class="btn btn-danger" id="delete-selected-btn" disabled><i class="icon-base ti tabler-trash me-1"></i> Supprimer</button>
       </div>
     </div>
