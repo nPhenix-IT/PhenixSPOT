@@ -11,6 +11,8 @@
 - Voucher print
 - Customizable Voucher
 - Online voucher purchase
+- PPPoE Feature
+- Hotspot feature
 - and more ...
 
 #### **Compatible with any NAS/Router that Support Radius**
