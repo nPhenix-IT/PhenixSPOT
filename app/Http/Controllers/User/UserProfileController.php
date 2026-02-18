@@ -31,7 +31,7 @@ class UserProfileController extends Controller
         $user->save();
 
         return redirect()
-            ->route('user.profile', 'notifications')
+            ->route('user.profile', ['tab' => 'notifications'])
             ->with('success', 'Paramètres Telegram mis à jour.');
     }
     
@@ -48,7 +48,7 @@ class UserProfileController extends Controller
     
         if (!$botToken || !$chatId) {
             return redirect()
-                ->route('user.profile', 'notifications')
+                ->route('user.profile', ['tab' => 'notifications'])
                 ->with('error', 'Veuillez renseigner le bot token et le chat ID avant le test.');
         }
     
@@ -57,7 +57,7 @@ class UserProfileController extends Controller
         $sent = app(TelegramService::class)->sendMessage($botToken, $chatId, $message);
     
         return redirect()
-            ->route('user.profile', 'notifications')
+            ->route('user.profile', ['tab' => 'notifications'])
             ->with($sent ? 'success' : 'error', $sent ? 'Message de test envoyé.' : 'Échec de l’envoi du message de test.');
     }
 }

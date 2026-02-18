@@ -7,16 +7,16 @@
           <a class="nav-link {{ $tab == 'account' ? 'active' : '' }}" href="javascript:void(0);"><i class="icon-base ti tabler-users icon-sm me-1_5"></i> Compte</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {{ $tab == 'security' ? 'active' : '' }}" href="{{ route('user.profile', 'security') }}"><i class="icon-base ti tabler-lock icon-sm me-1_5"></i> Sécurité</a>
+          <a class="nav-link {{ $tab == 'security' ? 'active' : '' }}" href="{{ route('user.profile', ['tab' => 'security']) }}"><i class="icon-base ti tabler-lock icon-sm me-1_5"></i> Sécurité</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {{ $tab == 'billing' ? 'active' : '' }}" href="{{ route('user.profile', 'billing') }}"><i class="icon-base ti tabler-bookmark icon-sm me-1_5"></i> Facturation & Forfaits</a>
+          <a class="nav-link {{ $tab == 'billing' ? 'active' : '' }}" href="{{ route('user.profile', ['tab' => 'billing']) }}"><i class="icon-base ti tabler-bookmark icon-sm me-1_5"></i> Facturation & Forfaits</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {{ $tab == 'notifications' ? 'active' : '' }}" href="{{ route('user.profile', 'notifications') }}"><i class="icon-base ti tabler-bell icon-sm me-1_5"></i> Notifications</a>
+          <a class="nav-link {{ $tab == 'notifications' ? 'active' : '' }}" href="{{ route('user.profile', ['tab' => 'notifications']) }}"><i class="icon-base ti tabler-bell icon-sm me-1_5"></i> Notifications</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {{ $tab == 'connections' ? 'active' : '' }}" href="{{ route('user.profile', 'connections') }}"><i class="icon-base ti tabler-link icon-sm me-1_5"></i> Connexions</a>
+          <a class="nav-link {{ $tab == 'connections' ? 'active' : '' }}" href="{{ route('user.profile', ['tab' => 'connections']) }}"><i class="icon-base ti tabler-link icon-sm me-1_5"></i> Connexions</a>
         </li>
       </ul>
     </div>

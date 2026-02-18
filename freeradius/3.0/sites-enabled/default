@@ -1,0 +1,51 @@
+server default {
+
+listen {
+    type = auth
+    ipaddr = *
+    port = 1812
+}
+
+listen {
+    type = acct
+    ipaddr = *
+    port = 1813
+}
+
+authorize {
+
+    preprocess
+
+    update control {
+        Tmp-String-0 := "%{sql:SELECT tenant_id FROM nas WHERE nasname='%{NAS-IP-Address}' LIMIT 1}"
+    }
+
+    if (!&control:Tmp-String-0) {
+        reject
+    }
+
+    sql
+
+    if (reject) {
+        reject
+    }
+}
+
+authenticate {
+    Auth-Type PAP {
+        pap
+    }
+}
+
+accounting {
+    sql
+}
+
+post-auth {
+
+    if (&reply:Packet-Type == Access-Accept) {
+        sql
+    }
+}
+
+}

@@ -175,7 +175,7 @@ $pageConfigs = ['myLayout' => 'blank'];
   }
 
   .purchase-actions-centered {
-    display: flex;
+    display: none;
     justify-content: center;
   }
 

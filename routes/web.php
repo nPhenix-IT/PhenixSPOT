@@ -62,6 +62,7 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::get('plans', [PricingController::class, 'index'])->name('plans.index');
     Route::get('payment/{plan}/{duration}', [PricingController::class, 'payment'])->name('payment');
     Route::post('apply-coupon', [PricingController::class, 'applyCoupon'])->name('apply-coupon');
+    
     Route::get('profile/{tab?}', [UserProfileController::class, 'index'])->name('profile');
     Route::post('profile/notifications', [UserProfileController::class, 'updateNotifications'])->name('profile.notifications');
     Route::post('profile/notifications/test-telegram', [UserProfileController::class, 'testTelegram'])->name('profile.notifications.test-telegram');

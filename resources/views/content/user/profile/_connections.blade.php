@@ -4,19 +4,19 @@
     <div class="nav-align-top">
       <ul class="nav nav-pills flex-column flex-md-row mb-6 gap-md-0 gap-2">
         <li class="nav-item">
-          <a class="nav-link" href="{{ route('user.profile', 'account') }}"><i class="icon-base ti tabler-users icon-sm me-1_5"></i> Account</a>
+          <a class="nav-link" href="{{ route('user.profile', ['tab' => 'account']) }}"><i class="icon-base ti tabler-users icon-sm me-1_5"></i> Account</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ route('user.profile', 'security') }}"><i class="icon-base ti tabler-lock icon-sm me-1_5"></i> Security</a>
+          <a class="nav-link" href="{{ route('user.profile', ['tab' => 'security']) }}"><i class="icon-base ti tabler-lock icon-sm me-1_5"></i> Security</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ route('user.profile', 'billing') }}"><i class="icon-base ti tabler-bookmark icon-sm me-1_5"></i> Billing & Plans</a>
+          <a class="nav-link" href="{{ route('user.profile', ['tab' => 'billing']) }}"><i class="icon-base ti tabler-bookmark icon-sm me-1_5"></i> Billing & Plans</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link active" href="{{ route('user.profile', 'notifications') }}"><i class="icon-base ti tabler-bell icon-sm me-1_5"></i> Notifications</a>
+          <a class="nav-link " href="{{ route('user.profile', ['tab' => 'notifications']) }}"><i class="icon-base ti tabler-bell icon-sm me-1_5"></i> Notifications</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="javascript:void(0);"><i class="icon-base ti tabler-link icon-sm me-1_5"></i> Connections</a>
+          <a class="nav-link active" href="javascript:void(0);"><i class="icon-base ti tabler-link icon-sm me-1_5"></i> Connections</a>
         </li>
       </ul>
     </div>
