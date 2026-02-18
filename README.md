@@ -11,8 +11,6 @@
 - Voucher print
 - Customizable Voucher
 - Online voucher purchase
-- PPPoE Feature
-- Hotspot feature
 - and more ...
 
 #### **Compatible with any NAS/Router that Support Radius**
@@ -39,6 +37,16 @@ cd RADIUSSPOT
 install dependencies using Composer
 ```
 composer install
+```
+
+Find .env.example file at root folder and copy it to .env by running below command Or also can manually copy it (if not having .env file):
+```
+cp .env.example .env
+```
+
+Run the following command to generate the key
+```
+php artisan key:generate
 ```
 
 Install all node the dependencies:
