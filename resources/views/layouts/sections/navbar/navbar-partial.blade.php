@@ -75,8 +75,8 @@ use Illuminate\Support\Facades\Route;
       </a>
       <ul class="dropdown-menu dropdown-menu-end">
         <li>
-          <a class="dropdown-item mt-0"
-            href="{{ Route::has('user.profile') ? route('user.profile') : 'javascript:void(0);' }}">
+          <!--<a class="dropdown-item mt-0"
+            href="{{-- Route::has('user.profile') ? route('user.profile') : 'javascript:void(0);' --}}">-->
             <div class="d-flex align-items-center">
               <div class="flex-shrink-0 me-2">
                 <div class="avatar avatar-online">
@@ -92,18 +92,18 @@ use Illuminate\Support\Facades\Route;
                   John Doe
                   @endif
                 </h6>
-                <small class="text-body-secondary">Admin</small>
+                <!--<small class="text-body-secondary">Admin</small>-->
               </div>
             </div>
-          </a>
+          <!--</a>-->
         </li>
         <li>
           <div class="dropdown-divider my-1 mx-n2"></div>
         </li>
         <li>
           <a class="dropdown-item"
-            href="{{ Route::has('user.profile') ? route('user.profile') : 'javascript:void(0);' }}">
-            <i class="icon-base ti tabler-user me-3 icon-md"></i><span class="align-middle">My Profile</span> </a>
+            href="{{ Route::has('user.profile') ? route('user.profile', ['tab' => 'account']) : 'javascript:void(0);' }}">
+            <i class="icon-base ti tabler-user me-3 icon-md"></i><span class="align-middle">Mon Compte</span> </a>
         </li>
         @if (Auth::check() && Laravel\Jetstream\Jetstream::hasApiFeatures())
         <li>
@@ -112,11 +112,11 @@ use Illuminate\Support\Facades\Route;
         </li>
         @endif
         <li>
-          <a class="dropdown-item" href="javascript:void(0);">
+          <a class="dropdown-item" href="{{ Route::has('user.profile') ? route('user.profile', ['tab' => 'billing']) : 'javascript:void(0);' }}">
             <span class="d-flex align-items-center align-middle">
-              <i class="flex-shrink-0 icon-base ti tabler-file-dollar me-3 icon-md"></i><span
-                class="flex-grow-1 align-middle">Billing</span>
-              <span class="flex-shrink-0 badge bg-danger d-flex align-items-center justify-content-center">4</span>
+              <i class="flex-shrink-0 icon-base ti tabler-file-invoice me-3 icon-md"></i><span
+                class="flex-grow-1 align-middle">Abonnement</span>
+              <!--<span class="flex-shrink-0 badge bg-danger d-flex align-items-center justify-content-center">4</span>-->
             </span>
           </a>
         </li>
@@ -125,7 +125,7 @@ use Illuminate\Support\Facades\Route;
           <div class="dropdown-divider my-1 mx-n2"></div>
         </li>
         <li>
-          <h6 class="dropdown-header">Manage Team</h6>
+          <h6 class="dropdown-header">Equipe</h6>
         </li>
         <li>
           <div class="dropdown-divider my-1"></div>
@@ -133,13 +133,13 @@ use Illuminate\Support\Facades\Route;
         <li>
           <a class="dropdown-item"
             href="{{ Auth::user() ? route('teams.show', Auth::user()->currentTeam->id) : 'javascript:void(0)' }}">
-            <i class="icon-base bx bx-cog icon-md me-3"></i><span>Team Settings</span>
+            <i class="icon-base ti tabler-settings icon-md me-3"></i><span>Paramètres</span>
           </a>
         </li>
         @can('create', Laravel\Jetstream\Jetstream::newTeamModel())
         <li>
           <a class="dropdown-item" href="{{ route('teams.create') }}">
-            <i class="icon-base bx bx-user icon-md me-3"></i><span>Create New Team</span>
+            <i class="icon-base ti tabler-plus icon-md me-3"></i><span>Créer</span>
           </a>
         </li>
         @endcan
@@ -148,7 +148,7 @@ use Illuminate\Support\Facades\Route;
           <div class="dropdown-divider my-1"></div>
         </li>
         <li>
-          <h6 class="dropdown-header">Switch Teams</h6>
+          <h6 class="dropdown-header">Changer</h6>
         </li>
         <li>
           <div class="dropdown-divider my-1"></div>
@@ -167,9 +167,9 @@ use Illuminate\Support\Facades\Route;
         </li>
         @if (Auth::check())
         <li>
-          <a class="dropdown-item" href="{{ route('logout') }}"
+          <a class="dropdown-item bg-label-danger" href="{{ route('logout') }}"
             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-            <i class="icon-base bx bx-power-off icon-md me-3"></i><span>Logout</span>
+            <i class="icon-base ti tabler-power icon-md me-3"></i><span>Se déconnecter</span>
           </a>
         </li>
         <form method="POST" id="logout-form" action="{{ route('logout') }}">
@@ -180,7 +180,7 @@ use Illuminate\Support\Facades\Route;
           <div class="d-grid px-2 pt-2 pb-1">
             <a class="btn btn-sm btn-danger d-flex"
               href="{{ Route::has('login') ? route('login') : url('auth/login-basic') }}">
-              <small class="align-middle">Login</small>
+              <small class="align-middle">Se connecter</small>
               <i class="icon-base ti tabler-login ms-2 icon-14px"></i>
             </a>
           </div>

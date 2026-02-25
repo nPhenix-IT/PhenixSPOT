@@ -18,6 +18,10 @@ document.addEventListener('DOMContentLoaded', function () {
     $('#delete-selected-btn').prop('disabled', !anyChecked);
     $('#print-selected-btn').prop('disabled', !anyChecked);
   }
+  
+  function extractErrorMessage(xhr, fallback) {
+    return xhr?.responseJSON?.message || fallback;
+  }
 
   if (dt_voucher_table.length) {
     dt_voucher = dt_voucher_table.DataTable({
@@ -95,14 +99,14 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!result.isConfirmed) return;
       $.ajax({
         url: '/vouchers/bulk-delete',
-        type: 'DELETE',
+        type: 'POST',
         data: { ids: ids },
         success: function (response) {
           if (dt_voucher) dt_voucher.ajax.reload(null, false);
           Swal.fire({ icon: 'success', title: 'Supprimé!', text: response.success, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
         },
-        error: function () {
-          Swal.fire({ icon: 'error', title: 'Erreur!', text: 'La suppression groupée a échoué.' });
+        error: function (xhr) {
+          Swal.fire({ icon: 'error', title: 'Erreur!', text: extractErrorMessage(xhr, 'Impossible de supprimer ce voucher.') });
         }
       });
     });
@@ -120,8 +124,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }).then(result => {
       if (!result.isConfirmed) return;
       $.ajax({
-        url: '/vouchers/' + voucherId,
-        type: 'DELETE',
+        url: '/vouchers/' + voucherId + '/delete',
+        type: 'POST',
         success: function (response) {
           if (dt_voucher) dt_voucher.ajax.reload(null, false);
           Swal.fire({ icon: 'success', title: 'Supprimé!', text: response.success, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });

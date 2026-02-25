@@ -10,9 +10,34 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\DataTables;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
+
 
 class RouterController extends Controller
 {
+    private function isUnlimitedValue($value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+        return in_array($normalized, ['-1', 'illimite', 'illimité', 'unlimited', 'infini', 'infinite', '∞'], true);
+    }
+
+    private function normalizeLimit($value): int
+    {
+        if ($this->isUnlimitedValue($value)) {
+            return PHP_INT_MAX;
+        }
+
+        if (is_numeric($value)) {
+            return max(0, (int) $value);
+        }
+
+        return 0;
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -39,8 +64,10 @@ class RouterController extends Controller
         $hasActiveSubscription = $user->hasRole(['Super-admin', 'Admin']) || ($user->subscription && $user->subscription->isActive());
         
         $routerCount = $user->routers()->count();
-        $planFeatures = $hasActiveSubscription ? $user->hasRole(['Super-admin', 'Admin']) || $user->subscription->plan->features : [];
-        $limit = $planFeatures['routers'] ?? 0;
+        $planFeatures = $hasActiveSubscription
+            ? ($user->hasRole(['Super-admin', 'Admin']) ? ['routers' => PHP_INT_MAX] : ($user->subscription->plan->features ?? []))
+            : [];
+        $limit = $this->normalizeLimit($planFeatures['routers'] ?? 0);
         return view('content.routers.index', compact('hasActiveSubscription', 'routerCount', 'limit'));
         
         // $hasActiveSubscription =  $user->subscription && $user->subscription->isActive();
@@ -60,7 +87,8 @@ class RouterController extends Controller
                 }
                 $planFeatures = $subscription->plan->features;
                 $routerCount = $user->routers()->count();
-                if ($routerCount >= $planFeatures['routers']) {
+                $routerLimit = $this->normalizeLimit($planFeatures['routers'] ?? 0);
+                if ($routerLimit > 0 && $routerLimit !== PHP_INT_MAX && $routerCount >= $routerLimit) {
                     return response()->json(['error' => "Limite de routeurs atteinte pour votre plan."], 403);
                 }
             }
@@ -152,22 +180,162 @@ class RouterController extends Controller
         return response()->json(['success' => 'Routeur supprimé et désynchronisé de RADIUS avec succès.']);
     }
 
-    public function generateScript(Router $router)
+    // public function generateScript(Router $router)
+    // {
+    //     if ($router->user_id !== Auth::id()) {
+    //         return response()->json(['error' => 'Accès non autorisé.'], 403);
+    //     }
+
+    //     $activeServer = RadiusServer::where('is_active', true)->first();
+    //     if (!$activeServer) {
+    //         return response()->json(['error' => 'Aucun serveur RADIUS actif n\'a été configuré.'], 404);
+    //     }
+    //     $radiusServerIp = $activeServer->ip_address;
+    //     $radiusSecret = $router->radius_secret;
+
+    //     $script = "/radius add service=hotspot,ppp address=$radiusServerIp secret=\"$radiusSecret\" comment=\"Serveur PhenixSPOT\";\n";
+    //     $script .= "/ip hotspot profile set [find default=yes] use-radius=yes;\n";
+    //     $script .= "/system logging add topics=radius,debug action=memory;\n";
+
+    //     return response()->json(['script' => $script]);
+    // }
+    public function radiusInstallCommand(Request $request, int $router)
     {
-        if ($router->user_id !== Auth::id()) {
-            return response()->json(['error' => 'Accès non autorisé.'], 403);
+        $routerModel = \App\Models\Router::findOrFail($router);
+    
+        // Sécurité: seul le propriétaire du routeur peut générer la commande
+        if ((int) $routerModel->user_id !== (int) \Illuminate\Support\Facades\Auth::id()) {
+            abort(403, 'Unauthorized.');
         }
-
+    
+        // Token temporaire
+        $ttlSeconds = 3600; // 1h
+        $expires = time() + $ttlSeconds;
+    
+        // Token HMAC (même approche que VPN)
+        $payload = $routerModel->id . '|' . $routerModel->user_id . '|' . $expires;
+        $token = hash_hmac('sha256', $payload, config('app.key'));
+    
+        // URL Loader (script tokenisé)
+        $loaderUrl = route('routers.radius.script.loader', [
+            'router'  => $routerModel->id,
+            'token'   => $token,
+            'expires' => $expires,
+        ]);
+    
+        // ✅ Commande MikroTik SIMPLE (comme VPN)
+        $cmd = "/tool fetch url=\"{$loaderUrl}\" mode=https check-certificate=no dst-path=radius.rsc; "
+             . "/import radius.rsc; "
+             . "/file remove radius.rsc";
+    
+        return response()->json([
+            'script'  => $cmd,
+            'expires' => $expires,
+        ]);
+    }
+    
+    public function radiusScriptLoader(Request $request, int $router)
+    {
+        $routerModel = $this->resolveScriptRouter($router, $request);
+        if (!$routerModel) abort(403, 'Invalid or expired token.');
+    
+        $coreUrl = route('routers.radius.script.core', [
+            'router'  => $routerModel->id,
+            'token'   => (string) $request->query('token'),
+            'expires' => (int) $request->query('expires'),
+        ]);
+    
+        $loader = <<<RSC
+/tool fetch url="$coreUrl" mode=https check-certificate=no dst-path=radius-core.rsc;
+:delay 1s;
+/import radius-core.rsc;
+#/file remove radius-core.rsc;
+:delay 1s;
+:log info "Installation RADIUS terminée";
+RSC;
+    
+        return response($loader, 200)->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+    
+    public function radiusScriptCore(Request $request, int $router)
+    {
+        $routerModel = $this->resolveScriptRouter($router, $request);
+        if (!$routerModel) abort(403, 'Invalid or expired token.');
+    
         $activeServer = RadiusServer::where('is_active', true)->first();
-        if (!$activeServer) {
-            return response()->json(['error' => 'Aucun serveur RADIUS actif n\'a été configuré.'], 404);
-        }
+        if (!$activeServer) abort(404, "Aucun serveur RADIUS actif n'a été configuré.");
+    
         $radiusServerIp = $activeServer->ip_address;
-        $radiusSecret = $router->radius_secret;
+        $radiusSecret   = $routerModel->radius_secret;
+    
+        $core = <<<RSC
+# ==========================================
+#   PHENIXSPOT - RADIUS CLIENT OPTIMIZED
+# ==========================================
 
-        $script = "/radius add service=hotspot address=$radiusServerIp secret=\"$radiusSecret\" comment=\"Serveur PhenixSPOT\";\n";
-        $script .= "/ip hotspot profile set [find default=yes] use-radius=yes\n";
+:local RADIUSIP "$radiusServerIp";
+:local RADIUSSECRET "$radiusSecret";
+:local COMMENT "Serveur PhenixSPOT";
 
-        return response()->json(['script' => $script]);
+# --- Clean previous entries for this server only
+:foreach r in=[/radius find] do={
+    :if ([/radius get \$r address] = \$RADIUSIP) do={
+        /radius remove \$r;
+    }
+}
+
+# --- Add RADIUS server
+/radius add \
+    address=\$RADIUSIP \
+    secret=\$RADIUSSECRET \
+    service=hotspot,ppp \
+    protocol=udp \
+    timeout=300ms \
+    accounting-backup=yes \
+    comment=\$COMMENT;
+
+# --- Enable RADIUS on all hotspot profiles
+/ip hotspot profile set [find] \
+    use-radius=yes \
+    radius-accounting=yes \
+    radius-interim-update=1m \
+    nas-port-type=wireless-802.11;
+
+# --- Enable RADIUS for PPP (PPPoE/L2TP)
+/ppp aaa set \
+    use-radius=yes \
+    accounting=yes \
+    interim-update=1m;
+
+# --- Improve reliability
+/radius set [find where address=\$RADIUSIP] src-address=0.0.0.0;
+
+:log info "PhenixSPOT RADIUS client configured (optimized mode)";
+# ==========================================
+#               END CONFIG
+# ==========================================
+RSC;
+    
+        return response($core, 200)->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+    
+    private function resolveScriptRouter(int $routerId, Request $request): ?Router
+    {
+        $token   = (string) $request->query('token');
+        $expires = (int) $request->query('expires');
+    
+        if (!$token || !$expires || $expires < time()) return null;
+    
+        $router = Router::find($routerId);
+        if (!$router) return null;
+    
+        $expected = $this->generateScriptTokenForRouter($router, $expires);
+        return hash_equals($expected, $token) ? $router : null;
+    }
+    
+    private function generateScriptTokenForRouter(Router $router, int $expires): string
+    {
+        $payload = $router->id . '|' . $router->user_id . '|' . $expires;
+        return hash_hmac('sha256', $payload, config('app.key'));
     }
 }

@@ -13,18 +13,22 @@ use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\User\UserProfileController;
 use App\Http\Controllers\User\SalePageController;
 use App\Http\Controllers\User\ReportController;
+
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\VpnServerController;
 use App\Http\Controllers\Admin\WithdrawalController;
 use App\Http\Controllers\Admin\RadiusServerController;
 use App\Http\Controllers\Admin\RadiusTesterController;
+
 use App\Http\Controllers\Public\SaleController;
 use App\Http\Controllers\Public\PaymentController;
 use App\Http\Controllers\RadiusWebhookController;
+use App\Http\Controllers\LandingController;
 
 // Page d'accueil
-Route::get('/', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::get('/', [LandingController::class, 'index'])->name('landing');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 
 // Changement de langue
 Route::get('/lang/{locale}', [LanguageController::class, 'swap']);
@@ -34,18 +38,28 @@ Route::get('/lang/{locale}', [LanguageController::class, 'swap']);
 Route::get('vpn/scripts/{account}/loader', [VpnAccountController::class, 'scriptLoader'])->name('vpn.script.loader');
 Route::get('vpn/scripts/{account}/core', [VpnAccountController::class, 'scriptCore'])->name('vpn.script.core');
 
+// Router RADIUS script loader/core endpoints (tokenized)
+// Génère une commande MikroTik (loader) à coller dans le terminal (JSON)
+Route::get('routers/{router}/radius/install-command', [RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
+// (Optionnel mais recommandé) loader/core text/plain si tu veux aussi supporter /tool fetch
+Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader')->middleware('signed');
+Route::get('routers/scripts/{router}/core', [RouterController::class, 'radiusScriptCore'])->name('routers.radius.script.core');
+
 // Routes Utilisateur
 Route::middleware(['auth'])->name('user.')->group(function () {
     Route::resource('routers', RouterController::class);
+    Route::post('vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
+    Route::delete('vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete.delete');
+    Route::post('vouchers/{voucher}/delete', [VoucherController::class, 'destroy'])->whereNumber('voucher')->name('vouchers.destroy-post');
+
     // Route::resource('vouchers', VoucherController::class);
-    Route::resource('vouchers', VoucherController::class)->except(['show']);
+    Route::resource('vouchers', VoucherController::class)->except(['show'])->whereNumber('voucher');
     Route::resource('profiles', ProfileController::class);
-    Route::post('vouchers/toggle-status/{voucher}', [VoucherController::class, 'toggleStatus'])->name('vouchers.toggle-status');
+    Route::post('vouchers/toggle-status/{voucher}', [VoucherController::class, 'toggleStatus'])->whereNumber('voucher')->name('vouchers.toggle-status');
     Route::post('vouchers/print-by-profile', [VoucherController::class, 'printByProfile'])->name('vouchers.print-by-profile');
     Route::post('vouchers/print', [VoucherController::class, 'print'])->name('vouchers.print');
     Route::get('vouchers/template', [VoucherController::class, 'getTemplate'])->name('vouchers.get-template');
     Route::post('vouchers/template', [VoucherController::class, 'saveTemplate'])->name('vouchers.save-template');
-    Route::delete('vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
     Route::get('wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::post('wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
     Route::get('payment-gateways', [PaymentGatewayController::class, 'index'])->name('payment-gateways.index');
@@ -64,8 +78,12 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::post('apply-coupon', [PricingController::class, 'applyCoupon'])->name('apply-coupon');
     
     Route::get('profile/{tab?}', [UserProfileController::class, 'index'])->name('profile');
+    Route::post('profile/account', [UserProfileController::class, 'updateAccount'])->name('profile.account.update');
+    Route::post('profile/security/password', [UserProfileController::class, 'updatePassword'])->name('profile.security.password.update');
+    Route::delete('profile/security/delete-account', [UserProfileController::class, 'deleteAccount'])->name('profile.security.delete-account');
     Route::post('profile/notifications', [UserProfileController::class, 'updateNotifications'])->name('profile.notifications');
     Route::post('profile/notifications/test-telegram', [UserProfileController::class, 'testTelegram'])->name('profile.notifications.test-telegram');
+    
     Route::get('sales-page', [SalePageController::class, 'edit'])->name('sales-page.edit');
     Route::post('sales-page', [SalePageController::class, 'update'])->name('sales-page.update');
     Route::get('sales-page/download-login-template', [SalePageController::class, 'downloadLoginTemplate'])->name('sales-page.download-login-template');
@@ -73,7 +91,7 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
-    Route::get('routers/{router}/generate-script', [RouterController::class, 'generateScript'])->name('routers.generate-script');
+    Route::get('/routers/{router}/radius/install-command', [\App\Http\Controllers\User\RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
     Route::post('routers/test-api', [RouterController::class, 'testApi'])->name('routers.test-api');
     Route::resource('routers', RouterController::class);
 });
@@ -82,8 +100,17 @@ Route::middleware(['auth'])->name('user.')->group(function () {
 Route::middleware(['auth', 'role:Super-admin|Admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('plans', PlanController::class);
     Route::resource('coupons', CouponController::class);
+    
+    Route::resource('vpn-servers', VpnServerController::class);
+    Route::post('vpn-servers/wireguard', [VpnServerController::class, 'storeWireguard'])->name('vpn-servers.store-wireguard');
+    
+    Route::resource('vpn-servers', VpnServerController::class)->except(['create']); // PAS de create view
+    Route::get('vpn-servers/{vpnServer}/json', [VpnServerController::class, 'json'])->name('vpn-servers.json');
+
     Route::post('vpn-servers/test-connection', [VpnServerController::class, 'testConnection'])->name('vpn-servers.test-connection');
     Route::resource('vpn-servers', VpnServerController::class);
+    // Route::post('vpn-servers/wireguard', [VpnServerController::class, 'storeWireguard'])->name('vpn-servers.store-wireguard');
+
     Route::get('withdrawals', [WithdrawalController::class, 'index'])->name('withdrawals.index');
     Route::post('withdrawals/{withdrawalRequest}/approve', [WithdrawalController::class, 'approve'])->name('withdrawals.approve');
     Route::post('withdrawals/{withdrawalRequest}/reject', [WithdrawalController::class, 'reject'])->name('withdrawals.reject');

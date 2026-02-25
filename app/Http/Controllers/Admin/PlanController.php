@@ -7,6 +7,7 @@ use App\Models\Plan;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 
 class PlanController extends Controller
 {
@@ -33,6 +34,7 @@ class PlanController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validatePlan($request);
+        $validated['slug'] = Str::slug($validated['name']);
         Plan::create($validated);
         return response()->json(['success' => 'Forfait créé avec succès.']);
     }
@@ -45,6 +47,7 @@ class PlanController extends Controller
     public function update(Request $request, Plan $plan)
     {
         $validated = $this->validatePlan($request, $plan->id);
+        $validated['slug'] = Str::slug($validated['name']);
         $plan->update($validated);
         return response()->json(['success' => 'Forfait mis à jour avec succès.']);
     }
@@ -62,12 +65,16 @@ class PlanController extends Controller
             'description' => 'nullable|string',
             'price_monthly' => 'required|numeric|min:0',
             'price_annually' => 'required|numeric|min:0',
-            'features.routers' => 'required|integer|min:0',
-            'features.vpn_accounts' => 'required|integer|min:0',
-            'features.vouchers' => 'required|integer|min:0',
+            'features.routers' => 'required|string|max:50',
+            'features.vpn_accounts' => 'required|string|max:50',
+            'features.active_users' => 'required|string|max:50',
+            'features.support_level' => 'nullable|string|max:50',
         ]);
-        $validated['features']['coupon_model'] = $request->has('features.coupon_model');
+        $validated['features']['pppoe'] = $request->has('features.pppoe');
         $validated['features']['sales_page'] = $request->has('features.sales_page');
+        $validated['features']['advanced_reports'] = $request->has('features.advanced_reports');
+        $validated['features']['hotspot'] = true;
+        $validated['features']['vouchers'] = true;
         $validated['is_active'] = $request->has('is_active');
         return $validated;
     }

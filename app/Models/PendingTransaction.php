@@ -9,7 +9,11 @@ use App\Models\Profile;
 
 class PendingTransaction extends Model {
     use HasFactory;
-    // protected $fillable = ['transaction_id', 'user_id', 'profile_id', 'payment_token', 'status'];
+    
+    protected $attributes = [
+        'status' => 'pending', // ✅ défaut
+    ];
+    
     protected $fillable = [
         'transaction_id',
         'user_id',

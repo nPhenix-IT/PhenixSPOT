@@ -73,6 +73,7 @@ class SaleController extends Controller
             'commission_payer' => $commissionPayer,
             'commission_amount' => $commissionAmount,
             'total_price' => $totalPrice,
+            'status' => 'pending', // ✅ AJOUT ICI
         ]);
         
         if ((float) $totalPrice <= 0) {
@@ -95,36 +96,54 @@ class SaleController extends Controller
         } catch (\Exception $exception) {
             return back()->with('error', 'Le service de paiement est indisponible.');
         }
-        $pendingTransaction->update(['payment_token' => $paymentData['token'] ?? null]);
+        $paymentUrl = $paymentData['url']
+            ?? $paymentData['payment_url']
+            ?? $paymentData['redirect_url']
+            ?? data_get($paymentData, 'data.url')
+            ?? null;
 
-        return redirect()->away($paymentData['url']);
+        $paymentToken = $paymentData['tokenPay']
+            ?? $paymentData['token']
+            ?? data_get($paymentData, 'data.tokenPay')
+            ?? null;
+
+        $pendingTransaction->update(['payment_token' => $paymentToken]);
+
+        if (empty($paymentUrl)) {
+            return back()->with('error', 'Impossible d\'ouvrir la page Money Fusion. Veuillez réessayer.');
+        }
+
+        return redirect()->away($paymentUrl);
     }
 
     private function completeFreePurchase(PendingTransaction $pendingTransaction): void
     {
         $profile = null;
         $code = null;
-        $walletBalance = null;
-
-        DB::transaction(function () use ($pendingTransaction, &$profile, &$code, &$walletBalance) {
+        
+        DB::transaction(function () use ($pendingTransaction, &$profile, &$code) {
             $user = User::find($pendingTransaction->user_id);
             $profile = Profile::find($pendingTransaction->profile_id);
-
-            $code = $this->generateVoucherCode();
-            Voucher::create([
-                'user_id' => $user->id,
-                'profile_id' => $profile->id,
-                'code' => $code,
-            ]);
-
-            Radcheck::create(['username' => $code, 'attribute' => 'Cleartext-Password', 'op' => ':=', 'value' => $code]);
-            Radusergroup::create(['username' => $code, 'groupname' => $profile->name]);
 
             $wallet = $user->wallet;
             $creditAmount = $profile->price;
             if ($pendingTransaction->commission_payer === 'seller') {
                 $creditAmount = max(0, $profile->price - $pendingTransaction->commission_amount);
             }
+
+            $code = $this->generateVoucherCode();
+            Voucher::create([
+                'user_id' => $user->id,
+                'profile_id' => $profile->id,
+                'code' => $code,
+                'source' => 'public_sale',
+                'wallet_credited_at' => now(),
+            ]);
+
+            Radcheck::create(['username' => $code, 'attribute' => 'Cleartext-Password', 'op' => ':=', 'value' => $code]);
+            Radusergroup::create(['username' => $code, 'groupname' => $profile->name]);
+
+            
             $wallet->balance += $creditAmount;
             $wallet->save();
             $walletBalance = $wallet->balance;
@@ -143,6 +162,8 @@ class SaleController extends Controller
         });
 
         $user = User::find($pendingTransaction->user_id);
+        $wallet = $user->wallet;
+        $walletBalance = $wallet->balance;
         if ($user && $user->sms_enabled && $pendingTransaction->customer_number && $code && $profile) {
             $message = "Votre code WiFi est: {$code}. Pass: {$profile->name}.";
             $smsSender = $user->sms_sender ?: null;
@@ -150,16 +171,18 @@ class SaleController extends Controller
         }
 
         if ($user && $user->telegram_bot_token && $user->telegram_chat_id && $code && $profile) {
-            $telegramMessage = "𝒊 <b>Nouvelle vente</b>\n";
+            $telegramMessage = "🛒 <b>Nouvelle vente - e-Ticket</b>\n\n";
             $telegramMessage .= "Pass: {$profile->name}\n";
             $telegramMessage .= "Code: {$code}\n";
-            $telegramMessage .= "Montant: " . number_format($profile->price, 0, ',', ' ') . " FCFA\n\n";
-            if ($walletBalance !== null) {
-                $telegramMessage .= "💰 <b>Solde Actuel</b>: " . number_format($walletBalance, 0, ',', ' ') . " FCFA\n";
-            }
+            $telegramMessage .= "Montant: <b>". number_format($profile->price, 0, ',', ' ') . " FCFA</b>\n";
             if ($pendingTransaction->customer_number) {
-                $telegramMessage .= "Client: {$pendingTransaction->customer_number}\n";
+                $telegramMessage .= "Nº du client: {$pendingTransaction->customer_number}\n\n";
             }
+            
+            if ($walletBalance !== null) {
+                $telegramMessage .= "💰 <b>Solde Actuel: " . number_format($walletBalance, 0, ',', ' ') . " FCFA</b>\n";
+            }
+
             app(TelegramService::class)->sendMessage(
                 $user->telegram_bot_token,
                 $user->telegram_chat_id,

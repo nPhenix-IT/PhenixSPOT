@@ -88,11 +88,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     dt_router_table.on('click', '.item-install', function() {
         var router_id = $(this).data('id');
-        $.get('/routers/' + router_id + '/generate-script', function(data) {
+    
+        $.get('/routers/' + router_id + '/radius/install-command', function(data) {
             $('#script-content').val(data.script);
             new bootstrap.Modal(document.getElementById('installScriptModal')).show();
         }).fail(function(err) {
-            Swal.fire({ icon: 'error', title: 'Erreur!', text: err.responseJSON.error || 'Impossible de générer le script.' });
+            const msg = err?.responseJSON?.message || err?.responseJSON?.error || 'Impossible de générer le script.';
+            Swal.fire({ icon: 'error', title: 'Erreur!', text: msg });
         });
     });
 

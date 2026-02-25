@@ -48,22 +48,22 @@
           <div class="mb-4">
             <label class="form-label">Commission</label>
             <div class="alert alert-info">
-              Commission appliquée : <strong>{{ number_format($settings->commission_percent, 0, ',', ' ') }}%</strong>.
-              Cette commission sera calculée automatiquement sur chaque vente.
+              Frais de transaction appliqués : <strong>{{ number_format($settings->commission_percent, 0, ',', ' ') }}%</strong>.
+              Ces frais seront appliqués automatiquement sur chaque vente.
             </div>
             <div class="d-flex flex-column gap-2">
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="commission_payer" id="commission_seller"
                   value="seller" {{ old('commission_payer', $settings->commission_payer) === 'seller' ? 'checked' : '' }}>
                 <label class="form-check-label" for="commission_seller">
-                  Je prends en charge la commission (le client paie uniquement le prix affiché)
+                  Je prends en charge les frais (le client paie uniquement le prix affiché)
                 </label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="commission_payer" id="commission_client"
                   value="client" {{ old('commission_payer', $settings->commission_payer) === 'client' ? 'checked' : '' }}>
                 <label class="form-check-label" for="commission_client">
-                  Le client paie la commission (prix affiché + commission)
+                  Le client paie les frais (prix affiché + frais)
                 </label>
               </div>
             </div>

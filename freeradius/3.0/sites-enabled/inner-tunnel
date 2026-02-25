@@ -1,13 +1,1 @@
-server inner-tunnel {
-
-authorize {
-    sql
-}
-
-authenticate {
-    Auth-Type PAP {
-        pap
-    }
-}
-
-}
+../sites-available/inner-tunnel

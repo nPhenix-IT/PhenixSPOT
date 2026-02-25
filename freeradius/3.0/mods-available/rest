@@ -46,7 +46,7 @@ rest {
 	#
 	# If you wish to disable this pre-caching and reachability check,
 	# comment out the configuration item below.
-	connect_uri = "http://127.0.0.1/"
+	connect_uri = "https://phenixspot.com"
 
 	#
 	#  How long before new connection attempts timeout, defaults to 4.0 seconds.
@@ -183,15 +183,16 @@ rest {
 	#  The status code is held in %{reply:REST-HTTP-Status-Code}.
 	#
 	authorize {
-		uri = "${..connect_uri}/user/%{User-Name}/mac/%{Called-Station-ID}?action=authorize"
-		method = 'get'
-		tls = ${..tls}
-	}
-	authenticate {
-		uri = "${..connect_uri}/user/%{User-Name}/mac/%{Called-Station-ID}?action=authenticate"
-		method = 'get'
-		tls = ${..tls}
-	}
+        uri = "${..connect_uri}/radius/webhook"
+        method = 'post'
+        body = 'json'
+    }
+    
+    authenticate {
+        uri = "${..connect_uri}/radius/webhook"
+        method = 'post'
+        body = 'json'
+    }
 
 	#  Preacct/Accounting/Post-auth/Pre-Proxy/Post-Proxy
 	#
@@ -200,91 +201,58 @@ rest {
 	#  2xx    successful    yes           ok/updated
 	#  5xx    server error  no            fail
 	#  xxx    -             no            invalid
-	preacct {
-		uri = "${..connect_uri}/user/%{User-Name}/sessions/%{Acct-Unique-Session-ID}?action=preacct"
-		method = 'post'
-		tls = ${..tls}
-	}
+	#preacct {
+	#	uri = "${..connect_uri}/user/%{User-Name}/sessions/%{Acct-Unique-Session-ID}?action=preacct"
+	#	method = 'post'
+	#	tls = ${..tls}
+	#}
 	accounting {
-		uri = "${..connect_uri}/user/%{User-Name}/sessions/%{Acct-Unique-Session-ID}?action=accounting"
-		method = 'post'
+        uri = "${..connect_uri}/radius/webhook"
+        method = 'post'
+        body = 'json'
 		tls = ${..tls}
-	}
-	post-auth {
-		uri = "${..connect_uri}/user/%{User-Name}/mac/%{Called-Station-ID}?action=post-auth"
-		method = 'post'
+    }
+    
+    post-auth {
+        uri = "${..connect_uri}/radius/webhook"
+        method = 'post'
+        body = 'json'
 		tls = ${..tls}
-	}
-	pre-proxy {
-		uri = "${..connect_uri}/user/%{User-Name}/mac/%{Called-Station-ID}?action=pre-proxy"
-		method = 'post'
-		tls = ${..tls}
-	}
-	post-proxy {
-		uri = "${..connect_uri}/user/%{User-Name}/mac/%{Called-Station-ID}?action=post-proxy"
-		method = 'post'
-		tls = ${..tls}
-	}
+    }
+	#pre-proxy {
+	#	uri = "${..connect_uri}/user/%{User-Name}/mac/%{Called-Station-ID}?action=pre-proxy"
+	#	method = 'post'
+	#	tls = ${..tls}
+	#}
+	#post-proxy {
+	#	uri = "${..connect_uri}/user/%{User-Name}/mac/%{Called-Station-ID}?action=post-proxy"
+	#	method = 'post'
+	#	tls = ${..tls}
+	#}
+
+	#  Options for calling rest xlats
+	#  uri and method will be derived from the string provided to the xlat
+	#xlat {
+		#
+		#  The whole string passed to a REST xlat is URI encoded.
+		#  With body_uri_encode = yes, any body data will remain encoded.
+		#  With body_uri_encode = no, the body data will be decoded and sent as provided.
+		#
+	#	body_uri_encode = yes
+	#	tls = ${..tls}
+	#}
 
 	#
-	#  The connection pool is new for 3.0, and will be used in many
-	#  modules, for all kinds of connection-related activity.
+	#  The connection pool is used to pool outgoing connections.
 	#
 	pool {
-		#  Connections to create during module instantiation.
-		#  If the server cannot create specified number of
-		#  connections during instantiation it will exit.
-		#  Set to 0 to allow the server to start without the
-		#  web service being available.
-		start = ${thread[pool].start_servers}
-
-		#  Minimum number of connections to keep open
-		min = ${thread[pool].min_spare_servers}
-
-		#  Maximum number of connections
-		#
-		#  If these connections are all in use and a new one
-		#  is requested, the request will NOT get a connection.
-		#
-		#  Setting 'max' to LESS than the number of threads means
-		#  that some threads may starve, and you will see errors
-		#  like 'No connections available and at max connection limit'
-		#
-		#  Setting 'max' to MORE than the number of threads means
-		#  that there are more connections than necessary.
-		max = ${thread[pool].max_servers}
-
-		#  Spare connections to be left idle
-		#
-		#  NOTE: Idle connections WILL be closed if "idle_timeout"
-		#  is set.  This should be less than or equal to "max" above.
-		spare = ${thread[pool].max_spare_servers}
-
-		#  Number of uses before the connection is closed
-		#
-		# 0 means "infinite"
-		uses = 0
-
-		#  The number of seconds to wait after the server tries
-		#  to open a connection, and fails.  During this time,
-		#  no new connections will be opened.
-		retry_delay = 30
-
-		#  The lifetime (in seconds) of the connection
-		lifetime = 0
-
-		#  idle timeout (in seconds).  A connection which is
-		#  unused for this length of time will be closed.
-		idle_timeout = 60
-
-		#  NOTE: All configuration settings are enforced.  If a
-		#  connection is closed because of "idle_timeout",
-		#  "uses", or "lifetime", then the total number of
-		#  connections MAY fall below "min".  When that
-		#  happens, it will open a new connection.  It will
-		#  also log a WARNING message.
-		#
-		#  The solution is to either lower the "min" connections,
-		#  or increase lifetime/idle_timeout.
-	}
+        start = 5
+        min = 3
+        max = 32
+        spare = 5
+        uses = 0
+        retry_delay = 5
+        lifetime = 0
+        idle_timeout = 30
+    }
 }

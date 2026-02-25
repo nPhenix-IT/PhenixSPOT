@@ -316,14 +316,16 @@ input[type="radio"]:checked + .protocol-card {
     <div class="card-body">
         <h6 class="mb-2">Surveillance du forfait</h6>
         <p class="mb-2">
-            Comptes actifs: <strong>{{ $vpnAccountCount }}</strong> / <strong>{{ $limit }}</strong> inclus.
+            Comptes actifs: <strong>{{ $vpnAccountCount }}</strong> / <strong>{{ $limitLabel ?? $limit }}</strong> inclus.
         </p>
-        <div class="progress">
-            <div
-                class="progress-bar"
-                style="width: {{ $limit > 0 ? min(100, ($vpnAccountCount / $limit) * 100) : 0 }}%;"
-            ></div>
-        </div>
+        @if(($limit ?? 0) !== PHP_INT_MAX)
+            <div class="progress">
+                <div
+                    class="progress-bar"
+                    style="width: {{ $usagePercent ?? 0 }}%;"
+                ></div>
+            </div>
+        @endif
         @if($isAtLimit)
         <small class="text-warning d-block mt-2"
             >Limite atteinte: les nouveaux comptes seront facturés à 500 FCFA/compte/mois.</small
@@ -624,7 +626,7 @@ input[type="radio"]:checked + .protocol-card {
                                             </div>
                                             <div class="code-body" id="code{{ $account->id }}">
                                                 <pre class="font-monospace-code m-0">
-/tool fetch url="{{ $account->script_loader_url }}" mode=https check-certificate=yes dst-path=vpn.rsc; /import vpn.rsc; /file remove vpn.rsc
+/tool fetch url="{{ $account->script_loader_url }}" mode=https check-certificate=no dst-path=vpn.rsc; /import vpn.rsc; /file remove vpn.rsc
                                                 </pre>
                                             </div>
                                         </div>

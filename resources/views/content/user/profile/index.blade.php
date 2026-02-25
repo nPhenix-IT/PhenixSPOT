@@ -46,7 +46,7 @@
           <a class="nav-link {{ $tab == 'account' ? 'active' : '' }}" href="{{ route('user.profile', 'account') }}"><i class="icon-base ti ti-users icon-sm me-1_5"></i> Compte</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {{ $tab == 'security' ? 'active' : '' }}" href="{{ route('user.profile', 'security') }}"><i class="icon-base ti ti-lock icon-sm me-1_5"></i> Sécurité</a>
+          <a class="nav-link {{ $tab == 'securite' ? 'active' : '' }}" href="{{ route('user.profile', 'security') }}"><i class="icon-base ti ti-lock icon-sm me-1_5"></i> Sécurité</a>
         </li>
         <li class="nav-item">
           <a class="nav-link {{ $tab == 'billing' ? 'active' : '' }}" href="{{ route('user.profile', 'billing') }}"><i class="icon-base ti ti-bookmark icon-sm me-1_5"></i> Facturation & Forfaits</a>

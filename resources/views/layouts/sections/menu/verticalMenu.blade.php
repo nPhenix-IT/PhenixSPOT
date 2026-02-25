@@ -1,5 +1,6 @@
 @php
 $configData = Helper::appClasses();
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 @endphp
@@ -76,7 +77,7 @@ use Illuminate\Support\Str;
           @endif
           <div>{{ isset($menu->name) ? __($menu->name) : '' }}</div>
           @if (isset($menu->badge))
-          <div class="badge bg-{{ $menu->badge[0] }} rounded-pill ms-auto">{{ $menu->badge[1] }}</div>
+          <div class="badge bg-{{ $menu->badge[0] }} rounded-pill ms-auto">{{ $menu->badge }}</div>
           @endif
         </a>
 
@@ -89,5 +90,27 @@ use Illuminate\Support\Str;
     @endif
     @endforeach
   </ul>
+  <div class="menu-divider mt-0"></div>
+  <div class="menu-block my-2 d-flex align-items-center">
+    <div class="avatar avatar-md avatar-online me-2"><img alt="Avatar" class="rounded-circle shadow" src="{{ Auth::user() ? Auth::user()->profile_photo_url : asset('assets/img/avatars/1.png') }}"></div>
+    <h5 class="menu-text mt-4 mb-1">
+    @if (Auth::check())
+      {{ Auth::user()->name }}
+      @else
+      John Doe
+    @endif
+    </h5>
+    @if(Auth::check() && Auth::user()->subscription?->plan)
+    <div class="small">
+      <a class="menu-link" href="javascript:void(0)">ABC Company, CEO</a>
+      <h5 class="mb-1">{{ $subscription->plan->name }}</h5>
+    </div>
+    @else
+    <div class="small">
+        <div class="menu-link text-center" href="javascript:void(0)">Aucun abonnement actif</div>
+        <!--<a class="menu-link" href="{{ route('user.plans.index') }}">Voir les plans</a>-->
+    </div>
+    @endif
+  </div>
 
 </aside>

@@ -4,139 +4,224 @@ namespace App\Http\Controllers;
 
 use App\Models\Voucher;
 use App\Models\Transaction;
+use App\Models\User;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class RadiusWebhookController extends Controller
 {
     /**
-     * Gère les requêtes entrantes de FreeRADIUS.
+     * Point d'entrée principal pour FreeRADIUS.
      */
     public function handle(Request $request)
     {
         try {
-            Log::info('Webhook FreeRADIUS Reçu:', $request->all());
+            $section = $request->header('X-FreeRadius-Section');
+            $username = $request->input('User-Name.value.0') ?? $request->input('User-Name');
 
-            $action = $request->header('X-FreeRadius-Section');
-            $username = $request->input('username');
-
-            if (!$username) {
-                return response()->json(['Reply-Message' => 'Username is required'], 400);
+            // Correction : On ne rejette plus si le nom d'utilisateur est absent lors de l'accounting
+            // (Utile pour les paquets Accounting-On / Accounting-Off du NAS)
+            if (!$username && !str_contains($section, 'accounting')) {
+                return response()->json(['reply:Reply-Message' => 'Nom d\'utilisateur manquant'], 400);
             }
 
-            switch ($action) {
-                case 'authorize':
-                    return $this->authorizeRequest($username);
+            switch (true) {
+                case str_contains($section, 'authorize'):
+                    return $this->handleAuthorize($username);
 
-                case 'authenticate':
-                    return $this->authenticateRequest($username);
+                case str_contains($section, 'post-auth'):
+                    return $this->handlePostAuth($username);
 
-                case 'post-auth':
-                    $this->postAuth($username);
-                    return response()->json(['status' => 'success']);
-                
-                case 'accounting':
-                    Log::info('Requête Accounting reçue pour : '.$username, $request->all());
-                    return response()->json(['status' => 'success']);
+                case str_contains($section, 'accounting'):
+                    // Log optionnel pour le debug
+                    if (!$username) {
+                        Log::info("Accounting global reçu du NAS: " . $request->input('NAS-IP-Address'));
+                    }
+                    return response()->json(['control:Auth-Type' => 'Accept']);
 
                 default:
-                    Log::warning('Webhook: Action non gérée', ['action' => $action]);
-                    return response()->json(['status' => 'action not handled']);
+                    return response()->json(['control:Auth-Type' => 'Accept']);
             }
+
         } catch (\Throwable $e) {
-            Log::error('Erreur fatale dans RadiusWebhookController: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            // Retourne un rejet RADIUS générique pour éviter que FreeRADIUS ne se bloque
-            return response()->json(['control:Auth-Type' => 'Reject', 'reply:Reply-Message' => 'Internal Server Error'], 500);
+            Log::error('Radius Webhook Error: ' . $e->getMessage());
+            return response()->json(['control:Auth-Type' => 'Reject'], 500);
         }
     }
 
     /**
-     * Vérifie si un utilisateur est autorisé et renvoie ses attributs.
+     * Vérification des limites avec messages d'erreur conviviaux.
      */
-    private function authorizeRequest($username)
+    private function handleAuthorize($username)
     {
-        $voucher = Voucher::where('code', $username)->where('status', 'new')->where('is_active', true)->with('profile')->first();
+        $voucher = Voucher::where('code', $username)
+            ->with(['profile'])
+            ->first();
 
-        if (!$voucher || !$voucher->profile) {
-            Log::warning("Webhook Authorize: Voucher non trouvé, inactif ou déjà utilisé pour: " . $username);
-            return response()->json(['control:Auth-Type' => 'Reject', 'reply:Reply-Message' => 'Voucher invalide ou expire.'], 200);
+        // ERREUR : Code inexistant ou désactivé
+        if (!$voucher || !$voucher->is_active) {
+            return response()->json([
+                'control:Auth-Type' => 'Reject',
+                'reply:Reply-Message' => 'Code invalide. Achetez-en un nouveau !'
+            ], 200);
         }
 
         $profile = $voucher->profile;
-        $attributes = [
+
+        $usage = DB::table('radacct')
+            ->where('username', $username)
+            ->select(
+                DB::raw('SUM(acctsessiontime) as total_time'),
+                DB::raw('SUM(acctinputoctets + acctoutputoctets) as total_data')
+            )
+            ->first();
+
+        $totalDataUsed = (int) ($usage->total_data ?? 0);
+        $totalTimeUsed = (int) ($usage->total_time ?? 0);
+
+        // 1. ERREUR : VALIDITÉ (Expiration calendaire)
+        if ($voucher->status === 'used' && $voucher->used_at && $profile->validity_period > 0) {
+            $expirationDate = Carbon::parse($voucher->used_at)->addSeconds($profile->validity_period);
+            if (now()->greaterThan($expirationDate)) {
+                return response()->json([
+                    'control:Auth-Type' => 'Reject',
+                    'reply:Reply-Message' => 'Code expiré. Achetez-en un nouveau pour continuer !'
+                ], 200);
+            }
+        }
+
+        // 2. ERREUR : QUOTA DATA (Volume de données)
+        if ($profile->data_limit > 0 && $totalDataUsed >= $profile->data_limit) {
+            return response()->json([
+                'control:Auth-Type' => 'Reject',
+                'reply:Reply-Message' => 'Volume épuisé ! 🚀 Rachetez un ticket pour continuer.'
+            ], 200);
+        }
+
+        // 3. ERREUR : LIMITE TEMPS (Durée de connexion)
+        if ($profile->session_timeout > 0 && $totalTimeUsed >= $profile->session_timeout) {
+            return response()->json([
+                'control:Auth-Type' => 'Reject',
+                'reply:Reply-Message' => 'Temps fini ! ⏳ Achetez un ticket pour rester en ligne.'
+            ], 200);
+        }
+
+        // Préparation de la réponse de succès
+        $response = [
             'control:Auth-Type' => 'Accept',
-            'reply:Simultaneous-Use' => $profile->device_limit,
+            'reply:Mikrotik-Rate-Limit' => $profile->rate_limit ?? '10M/10M',
+            // --- AJOUTS ATTRIBUTS UTILES ---
+            'reply:Acct-Interim-Interval' => 60, // Mise à jour des stats toutes les 60s
+            'reply:Idle-Timeout' => 300,        // Déconnexion après 5min d'inactivité
         ];
 
+        // Calcul du temps restant pour Session-Timeout
         if ($profile->session_timeout > 0) {
-            $attributes['reply:Session-Timeout'] = $profile->session_timeout;
+            $remainingTime = (int) max(0, $profile->session_timeout - $totalTimeUsed);
+            $response['reply:Session-Timeout'] = $remainingTime;
+        } else {
+            $response['reply:Session-Timeout'] = 604800; // 1 semaine par défaut si illimité
         }
 
+        // Calcul de la Data restante pour MikroTik
         if ($profile->data_limit > 0) {
-            $attributes['reply:Mikrotik-Total-Limit'] = $profile->data_limit;
+            $remainingData = (int) ($profile->data_limit - $totalDataUsed);
+            $response['reply:Mikrotik-Total-Limit'] = $remainingData;
         }
 
-        if (!empty($profile->rate_limit)) {
-            $attributes['reply:Mikrotik-Rate-Limit'] = $profile->rate_limit;
+        // Gestion de l'expiration calendaire stricte (WISPr)
+        if ($voucher->used_at && $profile->validity_period > 0) {
+            $expiration = Carbon::parse($voucher->used_at)->addSeconds($profile->validity_period);
+            $response['reply:WISPr-Session-Terminate-Time'] = $expiration->toIso8601String();
+            
+            // Message d'information sur la date d'expiration pour la page status.html
+            $response['reply:Reply-Message'] = "Expire le: " . $expiration->format('d/m H:i');
+        } else {
+            $response['reply:Reply-Message'] = "Bienvenue ! Connexion etablie.";
         }
 
-        Log::info("Webhook Authorize: Autorisation accordée pour " . $username, $attributes);
-        return response()->json($attributes, 200);
+        return response()->json($response, 200);
     }
 
     /**
-     * Confirme l'authentification de l'utilisateur.
+     * Phase Post-Auth : Crédit unique + Notification Telegram.
      */
-    private function authenticateRequest($username)
+    private function handlePostAuth($username)
     {
-        $voucher = Voucher::where('code', $username)->where('status', 'new')->where('is_active', true)->first();
+        $voucher = Voucher::where('code', $username)
+            ->where('status', 'new')
+            ->with(['user.wallet', 'profile'])
+            ->first();
 
         if ($voucher) {
-            // Un code 204 "No Content" est interprété comme un succès par rlm_rest pour l'authentification.
-            return response()->noContent();
+            try {
+                DB::transaction(function () use ($voucher, $username) {
+                    $voucher->update([
+                        'status' => 'used',
+                        'used_at' => now()
+                    ]);
+
+                    if ($voucher->source === 'manual_generation' && 
+                        $voucher->user && 
+                        $voucher->user->wallet && 
+                        $voucher->profile && 
+                        $voucher->profile->price > 0) {
+                        
+                        $amount = $voucher->profile->price;
+                        $user = $voucher->user;
+                        $wallet = $user->wallet;
+                        
+                        $wallet->increment('balance', $amount);
+                        
+                        Transaction::create([
+                            'wallet_id' => $wallet->id,
+                            'type' => 'credit',
+                            'amount' => $amount,
+                            'description' => "Vente code physique: {$voucher->code}",
+                        ]);
+
+                        $this->sendTelegramNotification($user, $voucher, $wallet->fresh()->balance);
+                        
+                        Log::info("Crédit et Notification Telegram effectués pour: $username");
+                    }
+                });
+            } catch (\Exception $e) {
+                Log::error("Erreur Post-Auth pour $username: " . $e->getMessage());
+            }
         }
 
-        Log::warning("Webhook Authenticate: Voucher non trouvé pour: " . $username);
-        return response()->json(['control:Auth-Type' => 'Reject'], 200);
+        return response()->json(['control:Auth-Type' => 'Accept']);
     }
 
     /**
-     * Met à jour le statut du voucher et crédite le portefeuille après une connexion réussie.
+     * Envoie la notification de vente au vendeur via Telegram.
      */
-    private function postAuth($username)
+    private function sendTelegramNotification($user, $voucher, $currentBalance)
     {
-        $voucher = Voucher::where('code', $username)->where('status', 'new')->with('user.wallet', 'profile')->first();
+        if ($user->telegram_bot_token && $user->telegram_chat_id) {
+            $profile = $voucher->profile;
+            
+            $telegramMessage = "🛒 <b>Nouvelle vente - Ticket Physique</b>\n\n";
+            $telegramMessage .= "Pass: {$profile->name}\n";
+            $telegramMessage .= "Code: <code>{$voucher->code}</code>\n";
+            $telegramMessage .= "Gain: <b>" . number_format($profile->price, 0, ',', ' ') . " FCFA</b>\n\n";
+            
+            if ($currentBalance !== null) {
+                $telegramMessage .= "💰 <b>Nouveau solde: " . number_format($currentBalance, 0, ',', ' ') . " FCFA</b>\n";
+            }
 
-        if (!$voucher || !$voucher->user || !$voucher->user->wallet || !$voucher->profile) {
-            Log::info("Webhook Post-Auth: Voucher ou ses relations non trouvés pour: " . $username);
-            return;
-        }
-
-        try {
-            DB::transaction(function () use ($voucher) {
-                $voucher->status = 'used';
-                $voucher->used_at = now();
-                $voucher->save();
-
-                $wallet = $voucher->user->wallet;
-                $price = $voucher->profile->price;
-                $wallet->balance += $price;
-                $wallet->save();
-
-                Transaction::create([
-                    'wallet_id' => $wallet->id,
-                    'type' => 'credit',
-                    'amount' => $price,
-                    'description' => 'Vente du voucher ' . $voucher->code,
-                ]);
-
-                Log::info("Webhook Post-Auth: Voucher " . $voucher->code . " traité. Portefeuille de l'utilisateur " . $voucher->user->id . " crédité de " . $price);
-            });
-        } catch (\Exception $e) {
-            Log::error("Webhook Post-Auth: Erreur lors du traitement du voucher " . $username . " : " . $e->getMessage());
+            try {
+                app(TelegramService::class)->sendMessage(
+                    $user->telegram_bot_token,
+                    $user->telegram_chat_id,
+                    $telegramMessage
+                );
+            } catch (\Exception $e) {
+                Log::warning("Erreur Telegram vendeur {$user->name}: " . $e->getMessage());
+            }
         }
     }
 }

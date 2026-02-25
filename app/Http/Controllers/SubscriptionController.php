@@ -14,6 +14,7 @@ class SubscriptionController extends Controller
     {
         $request->validate([
             'plan_id' => 'required|exists:plans,id',
+            'duration' => 'nullable|in:monthly,annually',
         ]);
 
         $plan = Plan::find($request->plan_id);
@@ -22,12 +23,14 @@ class SubscriptionController extends Controller
         // Annuler l'ancien abonnement s'il existe
         $user->subscription()->where('status', 'active')->update(['status' => 'cancelled']);
 
+        $duration = $request->input('duration', 'monthly');
+
         // Créer le nouvel abonnement
         $subscription = Subscription::create([
             'user_id' => $user->id,
             'plan_id' => $plan->id,
             'starts_at' => now(),
-            'ends_at' => $plan->interval == 'month' ? now()->addMonth() : now()->addYear(),
+            'ends_at' => $duration === 'annually' ? now()->addYear() : now()->addMonth(),
             'status' => 'active',
         ]);
 

@@ -10,6 +10,7 @@ $pageConfigs = ['myLayout' => 'blank'];
 
 @section('page-style')
 @vite(['resources/assets/vendor/scss/pages/page-auth.scss'])
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.css">
 <style>
   :root {
     --primary: {{ optional($settings)->primary_color ?? '#3b82f6' }};
@@ -52,25 +53,35 @@ $pageConfigs = ['myLayout' => 'blank'];
   }
 
   .pricing-title {
-    margin-top: 26px;
-    text-align: center;
-    font-size: 13px;
+    text-align: left;
+    font-size: 0.95rem;
     font-weight: 800;
-    letter-spacing: 1px;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
     color: #0f172a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
   }
 
-  .pricing-title::before,
-  .pricing-title::after {
-    content: '';
-    width: 42px;
-    height: 1px;
-    background: rgba(15, 23, 42, 0.15);
+  .pricing-accordion {
+    margin-top: 16px;
+  }
+
+  .pricing-accordion .accordion-item {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px !important;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .pricing-accordion .accordion-button {
+    font-weight: 700;
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  .pricing-accordion .accordion-button:not(.collapsed) {
+    background: #eff6ff;
+    color: #1d4ed8;
+    box-shadow: none;
   }
 
   .pricing-area {
@@ -165,6 +176,42 @@ $pageConfigs = ['myLayout' => 'blank'];
     margin-left: auto;
     margin-right: auto;
   }
+  
+  .selection-summary {
+    display: none;
+    margin-top: 16px;
+    border: 1px solid #dbeafe;
+    background: #f8fbff;
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  .selection-summary.is-visible {
+    display: block;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.92rem;
+    margin-bottom: 6px;
+  }
+
+  .summary-total {
+    font-weight: 800;
+    font-size: 1rem;
+    color: #0f172a;
+    border-top: 1px dashed #bfdbfe;
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+
+  .summary-note {
+    margin-top: 8px;
+    color: #475569;
+    font-size: 0.8rem;
+  }
 
   .purchase-actions {
     display: none;
@@ -183,6 +230,15 @@ $pageConfigs = ['myLayout' => 'blank'];
     display: flex;
     justify-content: center;
   }
+  
+  .iti {
+    width: 100%;
+  }
+
+  .iti__country-list {
+    z-index: 2000;
+  }
+
 </style>
 @endsection
 
@@ -204,6 +260,9 @@ $pageConfigs = ['myLayout' => 'blank'];
           @if(session('success'))
             <div class="alert alert-success text-center mt-4"><h4>{{ session('success') }}</h4></div>
           @endif
+          @if(session('error'))
+            <div class="alert alert-danger text-center mt-4">{{ session('error') }}</div>
+          @endif
           @if($errors->any())
             <div class="alert alert-danger mt-4">Veuillez corriger les erreurs ci-dessous.</div>
           @endif
@@ -216,43 +275,93 @@ $pageConfigs = ['myLayout' => 'blank'];
               @php
                 $commissionPayer = optional($settings)->commission_payer ?? 'seller';
                 $badgeClasses = ['badge-blue', 'badge-purple', 'badge-pink', 'badge-emerald'];
-                $renderProfiles = function ($items, $sectionTitle, $offset = 0) use ($commissionPayer, $commissionPercent, $badgeClasses) {
-                  if ($items->isEmpty()) {
-                    return;
-                  }
-
-                  echo '<div class="pricing-title">' . e($sectionTitle) . '</div>';
-                  echo '<div class="pricing-area">';
-                  foreach ($items as $index => $profile) {
-                    $commissionAmount = round(($profile->price * $commissionPercent) / 100, 2);
-                    $displayPrice = $commissionPayer === 'client'
-                      ? $profile->price + $commissionAmount
-                      : $profile->price;
-                    $badgeClass = $badgeClasses[($offset + $index) % count($badgeClasses)];
-
-                    echo view('content.public.partials.sale_profile_badge', [
-                      'profile' => $profile,
-                      'badgeClass' => $badgeClass,
-                      'commissionAmount' => $commissionAmount,
-                      'commissionPayer' => $commissionPayer,
-                      'displayPrice' => $displayPrice,
-                    ])->render();
-                  }
-                  echo '</div>';
-                };
               @endphp
 
-              @php $renderProfiles($hourProfiles, 'PASS HEURES', 0); @endphp
-              @php $renderProfiles($dataProfiles, 'PASS DATA', $hourProfiles->count()); @endphp
+              <div class="accordion pricing-accordion" id="passAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="headingHours">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHours" aria-expanded="true" aria-controls="collapseHours">
+                      <span class="pricing-title">PASS HEURES</span>
+                    </button>
+                  </h2>
+                  <div id="collapseHours" class="accordion-collapse collapse show" aria-labelledby="headingHours" data-bs-parent="#passAccordion">
+                    <div class="accordion-body">
+                      @if($hourProfiles->isNotEmpty())
+                        <div class="pricing-area">
+                          @foreach($hourProfiles as $index => $profile)
+                            @php
+                              $commissionAmount = round(($profile->price * $commissionPercent) / 100, 2);
+                              $displayPrice = $commissionPayer === 'client'
+                                ? $profile->price + $commissionAmount
+                                : $profile->price;
+                              $badgeClass = $badgeClasses[$index % count($badgeClasses)];
+                            @endphp
+                            @include('content.public.partials.sale_profile_badge', [
+                              'profile' => $profile,
+                              'badgeClass' => $badgeClass,
+                              'commissionAmount' => $commissionAmount,
+                              'commissionPayer' => $commissionPayer,
+                              'displayPrice' => $displayPrice,
+                            ])
+                          @endforeach
+                        </div>
+                      @else
+                        <div class="text-muted">Aucun pass heure disponible.</div>
+                      @endif
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="headingData">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData" aria-expanded="false" aria-controls="collapseData">
+                      <span class="pricing-title">PASS DATA</span>
+                    </button>
+                  </h2>
+                  <div id="collapseData" class="accordion-collapse collapse" aria-labelledby="headingData" data-bs-parent="#passAccordion">
+                    <div class="accordion-body">
+                      @if($dataProfiles->isNotEmpty())
+                        <div class="pricing-area">
+                          @foreach($dataProfiles as $index => $profile)
+                            @php
+                              $commissionAmount = round(($profile->price * $commissionPercent) / 100, 2);
+                              $displayPrice = $commissionPayer === 'client'
+                                ? $profile->price + $commissionAmount
+                                : $profile->price;
+                              $badgeClass = $badgeClasses[($hourProfiles->count() + $index) % count($badgeClasses)];
+                            @endphp
+                            @include('content.public.partials.sale_profile_badge', [
+                              'profile' => $profile,
+                              'badgeClass' => $badgeClass,
+                              'commissionAmount' => $commissionAmount,
+                              'commissionPayer' => $commissionPayer,
+                              'displayPrice' => $displayPrice,
+                            ])
+                          @endforeach
+                        </div>
+                      @else
+                        <div class="text-muted">Aucun pass data disponible.</div>
+                      @endif
+                    </div>
+                  </div>
+                </div>
+              </div>
             @else
               <div class="alert alert-warning mt-4">Aucun forfait disponible.</div>
             @endif
             
             @if($profiles->isNotEmpty())
+            <div id="selectionSummary" class="selection-summary">
+                <div class="summary-row"><span>Forfait</span><strong id="summaryPack">-</strong></div>
+                <div class="summary-row"><span>Prix du code</span><strong id="summaryBase">0 FCFA</strong></div>
+                <div class="summary-row"><span>Frais transaction</span><strong id="summaryFee">0 FCFA</strong></div>
+                <div class="summary-row summary-total"><span>Total à payer</span><strong id="summaryTotal">0 FCFA</strong></div>
+                <div class="summary-note">Paiement sécurisé Money Fusion. Votre code s'affiche immédiatement après confirmation.</div>
+              </div>
               <div class="customer-card purchase-actions">
                 <input type="hidden" name="customer_name" value="{{ $user->name }}">
                 <label class="form-label">Votre numéro</label>
-                <input type="text" name="customer_number" class="form-control" placeholder="0700000000" required>
+                <input type="tel" id="customer_number" name="customer_number" class="form-control" required>
               </div>
               <div class="mt-4 purchase-actions purchase-actions-centered">
                 <button id="purchaseSubmitBtn" type="submit" class="btn btn-primary btn-lg"
@@ -272,15 +381,66 @@ $pageConfigs = ['myLayout' => 'blank'];
 @section('page-script')
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    const loadScript = (src) => new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        if (window.intlTelInput) {
+          resolve();
+        } else {
+          existing.addEventListener('load', resolve, { once: true });
+          existing.addEventListener('error', reject, { once: true });
+        }
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+
     const profileInputs = document.querySelectorAll('.price-input');
     const purchaseActions = document.querySelectorAll('.purchase-actions');
     const purchaseSubmitBtn = document.getElementById('purchaseSubmitBtn');
+    const purchaseActionsCentered = document.querySelector('.purchase-actions-centered');
+    const saleForm = document.querySelector('form[action*="/purchase"]');
+    const customerNumberInput = document.getElementById('customer_number');
+    let itiCustomerNumber = null;
+    const selectionSummary = document.getElementById('selectionSummary');
+    const summaryPack = document.getElementById('summaryPack');
+    const summaryBase = document.getElementById('summaryBase');
+    const summaryFee = document.getElementById('summaryFee');
+    const summaryTotal = document.getElementById('summaryTotal');
+
+    const formatFcfa = (value) => `${new Intl.NumberFormat('fr-FR').format(Math.round(Number(value || 0)))} FCFA`;
+
+    const updateSelectionSummary = () => {
+      const selected = document.querySelector('.price-input:checked');
+      if (!selectionSummary || !selected) {
+        selectionSummary?.classList.remove('is-visible');
+        return;
+      }
+
+      const profileName = selected.dataset.profileName || '-';
+      const base = selected.dataset.basePrice;
+      const fee = selected.dataset.fee;
+      const total = selected.dataset.total;
+
+      summaryPack.textContent = profileName;
+      summaryBase.textContent = formatFcfa(base);
+      summaryFee.textContent = formatFcfa(fee);
+      summaryTotal.textContent = formatFcfa(total);
+      selectionSummary.classList.add('is-visible');
+    };
 
     const updateSubmitButtonText = () => {
       if (!purchaseSubmitBtn) return;
       const selected = document.querySelector('.price-input:checked');
       const isFree = selected ? selected.dataset.isFree === '1' : false;
-      purchaseSubmitBtn.textContent = isFree ? 'Obtenir mon code' : 'Payer avec Money Fusion';
+      const total = selected ? selected.dataset.total : 0;
+      purchaseSubmitBtn.textContent = isFree ? 'Obtenir mon code' : `Payer ${formatFcfa(total)}`;
     };
 
     const togglePurchaseActions = () => {
@@ -292,13 +452,57 @@ $pageConfigs = ['myLayout' => 'blank'];
           section.classList.remove('is-visible');
         }
       });
+      updateSelectionSummary();
       updateSubmitButtonText();
+    };
+
+    const scrollToPaymentActions = () => {
+      const scrollTarget = purchaseActionsCentered || purchaseSubmitBtn;
+      if (!scrollTarget) return;
+
+      requestAnimationFrame(() => {
+        scrollTarget.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      });
     };
 
     profileInputs.forEach(input => {
       input.addEventListener('change', togglePurchaseActions);
       input.addEventListener('click', togglePurchaseActions);
+      input.addEventListener('change', scrollToPaymentActions);
+      input.addEventListener('click', scrollToPaymentActions);
     });
+
+    if (customerNumberInput) {
+      loadScript('https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js')
+        .then(() => {
+          itiCustomerNumber = window.intlTelInput(customerNumberInput, {
+            initialCountry: 'auto',
+            preferredCountries: ['ci', 'sn', 'bf', 'ml', 'tg', 'bj', 'fr'],
+            separateDialCode: true,
+            geoIpLookup: function (callback) {
+              fetch('https://ipapi.co/json/')
+                .then(response => response.json())
+                .then(data => callback((data && data.country_code ? data.country_code : 'CI').toLowerCase()))
+                .catch(() => callback('ci'));
+            },
+            utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js'
+          });
+        })
+        .catch(() => {
+          // graceful fallback: user can still type the number manually
+        });
+    }
+
+    if (saleForm) {
+      saleForm.addEventListener('submit', () => {
+        if (itiCustomerNumber) {
+          customerNumberInput.value = itiCustomerNumber.getNumber();
+        }
+      });
+    }
 
     togglePurchaseActions();
   });

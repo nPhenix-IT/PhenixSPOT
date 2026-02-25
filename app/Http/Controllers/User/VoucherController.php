@@ -8,15 +8,39 @@ use App\Models\Voucher;
 use App\Models\Template;
 use App\Models\Radcheck;
 use App\Models\Radusergroup;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+// use Illuminate\Support\Str;
 use Yajra\DataTables\DataTables;
 use tbQuar\Facades\Quar;
 
 class VoucherController extends Controller
 {
+    private function isUnlimitedValue($value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+        return in_array($normalized, ['-1', 'illimite', 'illimité', 'unlimited', 'infini', 'infinite', '∞'], true);
+    }
+
+    private function normalizeLimit($value): int
+    {
+        if ($this->isUnlimitedValue($value)) {
+            return PHP_INT_MAX;
+        }
+
+        if (is_numeric($value)) {
+            return max(0, (int) $value);
+        }
+
+        return 0;
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -44,11 +68,16 @@ class VoucherController extends Controller
         $profiles = $user->profiles()->get();
         $hasActiveSubscription = $user->hasRole(['Super-admin', 'Admin']) || ($user->subscription && $user->subscription->isActive());
         
-        $planFeatures = $hasActiveSubscription ? ($user->hasRole(['Super-admin', 'Admin']) ? ['vouchers' => PHP_INT_MAX] : $user->subscription->plan->features) : [];
+        $planFeatures = $hasActiveSubscription ? ($user->hasRole(['Super-admin', 'Admin']) ? ['active_users' => PHP_INT_MAX] : ($user->subscription->plan->features ?? [])) : [];
         $vouchersCount = $user->vouchers()->count();
-        $limit = $planFeatures['vouchers'] ?? 0;
+        $limit = $this->normalizeLimit($planFeatures['active_users'] ?? ($planFeatures['vouchers'] ?? 0));
+        $isUnlimitedLimit = $limit === PHP_INT_MAX;
+        $limitLabel = $isUnlimitedLimit ? 'Illimité' : number_format($limit, 0, ',', ' ');
+        $usagePercent = (!$isUnlimitedLimit && $limit > 0)
+            ? min(100, ($vouchersCount / $limit) * 100)
+            : 0;
 
-        return view('content.vouchers.index', compact('profiles', 'hasActiveSubscription', 'vouchersCount', 'limit'));
+        return view('content.vouchers.index', compact('profiles', 'hasActiveSubscription', 'vouchersCount', 'limit', 'limitLabel', 'usagePercent', 'isUnlimitedLimit'));
     }
 
     public function store(Request $request)
@@ -61,14 +90,43 @@ class VoucherController extends Controller
         ]);
 
         $user = Auth::user();
+        $hasActiveSubscription = $user->hasRole(['Super-admin', 'Admin']) || ($user->subscription && $user->subscription->isActive());
+        if (!$hasActiveSubscription) {
+            return response()->json(['error' => 'Abonnement inactif.'], 403);
+        }
+
+        $planFeatures = $user->hasRole(['Super-admin', 'Admin'])
+            ? ['active_users' => PHP_INT_MAX]
+            : ($user->subscription->plan->features ?? []);
+
+        $limit = $this->normalizeLimit($planFeatures['active_users'] ?? ($planFeatures['vouchers'] ?? 0));
+        $vouchersCount = $user->vouchers()->count();
+
+        if ($limit !== PHP_INT_MAX) {
+            if ($limit <= 0) {
+                return response()->json(['error' => 'Votre plan ne permet pas de générer des vouchers.'], 403);
+            }
+
+            if (($vouchersCount + (int) $data['quantity']) > $limit) {
+                $remaining = max(0, $limit - $vouchersCount);
+                return response()->json(['error' => "Limite de vouchers atteinte. Il vous reste {$remaining} voucher(s) disponible(s)."], 403);
+            }
+        }
         $profile = Profile::where('id', $data['profile_id'])->where('user_id', $user->id)->firstOrFail();
 
         DB::transaction(function () use ($data, $user, $profile) {
             for ($i = 0; $i < $data['quantity']; $i++) {
-                $code = $this->generateUniqueCode($data['length'], $data['charset']);
-                Voucher::create(['user_id' => $user->id, 'profile_id' => $profile->id, 'code' => $code]);
-                Radcheck::create(['username' => $code, 'attribute' => 'Cleartext-Password', 'op' => ':=', 'value' => $code]);
-                Radusergroup::create(['username' => $code, 'groupname' => $profile->name]);
+                $generatedCode = $this->createVoucherWithRetry(
+                    $user->id,
+                    $profile->id,
+                    $profile->name,
+                    (int) $data['length'],
+                    $data['charset']
+                );
+
+                if ($generatedCode === null) {
+                    throw new \RuntimeException('Impossible de générer un code voucher unique après plusieurs tentatives.');
+                }
             }
         });
 
@@ -118,7 +176,7 @@ class VoucherController extends Controller
     private function generatePrintView($vouchers)
     {
         $user = Auth::user();
-        $templateContent = optional($user->template)->content ?? file_get_contents(resource_path('views/content/vouchers/_default_template.blade.php'));
+        $templateContent = optional($user->template)->content ?? file_get_contents(resource_path('views/content/vouchers/_qrcode_template.blade.php'));
         $dnsName = $user?->salePageSetting?->login_dns; 
 
         $output = '';
@@ -156,18 +214,58 @@ class VoucherController extends Controller
         return response()->json(['success' => 'Template sauvegardé avec succès.']);
     }
 
-    private function generateUniqueCode($length, $charset)
+    private function createVoucherWithRetry(int $userId, int $profileId, string $profileName, int $length, string $charset): ?string
+    {
+        $maxAttempts = 20;
+
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            $code = $this->generateUniqueCode($length, $charset);
+
+            try {
+                Voucher::create([
+                    'user_id' => $userId,
+                    'profile_id' => $profileId,
+                    'code' => $code,
+                    'source' => 'manual_generation',
+                ]);
+
+                Radcheck::create(['username' => $code, 'attribute' => 'Cleartext-Password', 'op' => ':=', 'value' => $code]);
+                Radusergroup::create(['username' => $code, 'groupname' => $profileName]);
+
+                return $code;
+            } catch (QueryException $exception) {
+                if (!$this->isDuplicateKeyException($exception)) {
+                    throw $exception;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function isDuplicateKeyException(QueryException $exception): bool
+    {
+        return (string) $exception->getCode() === '23000'
+            || str_contains(strtolower($exception->getMessage()), 'duplicate entry');
+    }
+
+    private function generateUniqueCode(int $length, string $charset): string
     {
         $characters = '';
         switch ($charset) {
-            case 'ABC': $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; break;
-            case 'abc': $characters = 'abcdefghijklmnopqrstuvwxyz'; break;
-            case 'A1B2C': $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; break;
-            case 'a1b2c': $characters = 'abcdefghijklmnopqrstuvwxyz0123456789'; break;
+            case 'ABC': $characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; break;
+            case 'abc': $characters = 'abcdefghjklmnpqrstuvwxyz'; break;
+            case 'A1B2C': $characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; break;
+            case 'a1b2c': $characters = 'abcdefghijklmnpqrstuvwxyz23456789'; break;
         }
-        do {
-            $code = substr(str_shuffle(str_repeat($characters, ceil($length/strlen($characters)))), 1, $length);
-        } while (Voucher::where('code', $code)->exists());
+        
+        $charactersLength = strlen($characters);
+        $code = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $code .= $characters[random_int(0, $charactersLength - 1)];
+        }
+
         return $code;
     }
 
@@ -176,7 +274,8 @@ class VoucherController extends Controller
         if ($seconds >= 2592000) { $value = round($seconds / 2592000); $unit = $value > 1 ? 'Mois' : 'Mois'; }
         elseif ($seconds >= 604800) { $value = round($seconds / 604800); $unit = $value > 1 ? 'Semaines' : 'Semaine'; }
         elseif ($seconds >= 86400) { $value = round($seconds / 86400); $unit = $value > 1 ? 'Jours' : 'Jour'; }
-        else { $value = round($seconds / 3600); $unit = $value > 1 ? 'Heures' : 'Heure'; }
+        elseif ($seconds >= 3600) { $value = round($seconds / 3600); $unit = $value > 1 ? 'Heures' : 'Heure'; }
+        else { $value = round($seconds / 1800); $unit = $value > 1 ? 'Minutes' : 'Minute'; }
         return "$value $unit";
     }
 

@@ -21,165 +21,140 @@
       </ul>
     </div>
     <div class="card mb-6">
-      <!-- Account -->
-      <div class="card-body">
-        <div class="d-flex align-items-start align-items-sm-center gap-6">
-          <img src="{{ asset('assets/img/avatars/1.png') }}" alt="user-avatar" class="d-block w-px-100 h-px-100 rounded" id="uploadedAvatar" />
-          <div class="button-wrapper">
-            <label for="upload" class="btn btn-primary me-3 mb-4" tabindex="0">
-              <span class="d-none d-sm-block">Upload new photo</span>
-              <i class="icon-base ti tabler-upload d-block d-sm-none"></i>
-              <input type="file" id="upload" class="account-file-input" hidden accept="image/png, image/jpeg" />
-            </label>
-            <button type="button" class="btn btn-label-secondary account-image-reset mb-4">
-              <i class="icon-base ti tabler-reset d-block d-sm-none"></i>
-              <span class="d-none d-sm-block">Reset</span>
-            </button>
+        <h5 class="card-header">Informations du compte</h5>
+        <div class="card-body">
+    <style>
+      .iti { width: 100%; }
+      .iti__country-list { z-index: 9999; }
+    </style>
 
-            <div>Allowed JPG, GIF or PNG. Max size of 800K</div>
-          </div>
+    <form id="profileAccountForm" action="{{ route('user.profile.account.update') }}" method="POST" enctype="multipart/form-data">
+      @csrf
+
+      <div class="d-flex align-items-start align-items-sm-center gap-4 mb-6">
+        <img src="{{ auth()->user()->profile_photo_url }}" alt="Photo de profil" class="d-block w-px-100 h-px-100 rounded" id="uploadedAvatar" />
+        <div>
+          <label for="profile_photo" class="btn btn-primary mb-2" tabindex="0">
+            <span>Changer la photo</span>
+            <input type="file" id="profile_photo" name="profile_photo" class="d-none" accept="image/png,image/jpeg,image/jpg,image/webp" />
+          </label>
+          <p class="text-muted mb-0">Formats acceptés : JPG, PNG, WEBP (max 2MB)</p>
+          @error('profile_photo')<div class="text-danger small">{{ $message }}</div>@enderror
         </div>
       </div>
-      <div class="card-body pt-4">
-        <form id="formAccountSettings" method="POST" onsubmit="return false">
-          <div class="row gy-4 gx-6 mb-6">
-            <div class="col-md-6 form-control-validation">
-              <label for="firstName" class="form-label">First Name</label>
-              <input class="form-control" type="text" id="firstName" name="firstName" value="John" autofocus />
-            </div>
-            <div class="col-md-6 form-control-validation">
-              <label for="lastName" class="form-label">Last Name</label>
-              <input class="form-control" type="text" name="lastName" id="lastName" value="Doe" />
-            </div>
-            <div class="col-md-6">
-              <label for="email" class="form-label">E-mail</label>
-              <input class="form-control" type="text" id="email" name="email" value="john.doe@example.com" placeholder="john.doe@example.com" />
-            </div>
-            <div class="col-md-6">
-              <label for="organization" class="form-label">Organization</label>
-              <input type="text" class="form-control" id="organization" name="organization" value="{{ config('variables.creatorName') }}" />
-            </div>
-            <div class=" col-md-6">
-              <label class="form-label" for="phoneNumber">Phone Number</label>
-              <div class="input-group input-group-merge">
-                <span class="input-group-text">US (+1)</span>
-                <input type="text" id="phoneNumber" name="phoneNumber" class="form-control" placeholder="202 555 0111" />
-              </div>
-            </div>
-            <div class="col-md-6">
-              <label for="address" class="form-label">Address</label>
-              <input type="text" class="form-control" id="address" name="address" placeholder="Address" />
-            </div>
-            <div class="col-md-6">
-              <label for="state" class="form-label">State</label>
-              <input class="form-control" type="text" id="state" name="state" placeholder="California" />
-            </div>
-            <div class="col-md-6">
-              <label for="zipCode" class="form-label">Zip Code</label>
-              <input type="text" class="form-control" id="zipCode" name="zipCode" placeholder="231465" maxlength="6" />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" for="country">Country</label>
-              <select id="country" class="select2 form-select">
-                <option value="">Select</option>
-                <option value="Australia">Australia</option>
-                <option value="Bangladesh">Bangladesh</option>
-                <option value="Belarus">Belarus</option>
-                <option value="Brazil">Brazil</option>
-                <option value="Canada">Canada</option>
-                <option value="China">China</option>
-                <option value="France">France</option>
-                <option value="Germany">Germany</option>
-                <option value="India">India</option>
-                <option value="Indonesia">Indonesia</option>
-                <option value="Israel">Israel</option>
-                <option value="Italy">Italy</option>
-                <option value="Japan">Japan</option>
-                <option value="Korea">Korea, Republic of</option>
-                <option value="Mexico">Mexico</option>
-                <option value="Philippines">Philippines</option>
-                <option value="Russia">Russian Federation</option>
-                <option value="South Africa">South Africa</option>
-                <option value="Thailand">Thailand</option>
-                <option value="Turkey">Turkey</option>
-                <option value="Ukraine">Ukraine</option>
-                <option value="United Arab Emirates">United Arab Emirates</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="United States">United States</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="language" class="form-label">Language</label>
-              <select id="language" class="select2 form-select">
-                <option value="">Select Language</option>
-                <option value="en">English</option>
-                <option value="fr">French</option>
-                <option value="de">German</option>
-                <option value="pt">Portuguese</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="timeZones" class="form-label">Timezone</label>
-              <select id="timeZones" class="select2 form-select">
-                <option value="">Select Timezone</option>
-                <option value="-12">(GMT-12:00) International Date Line West</option>
-                <option value="-11">(GMT-11:00) Midway Island, Samoa</option>
-                <option value="-10">(GMT-10:00) Hawaii</option>
-                <option value="-9">(GMT-09:00) Alaska</option>
-                <option value="-8">(GMT-08:00) Pacific Time (US & Canada)</option>
-                <option value="-8">(GMT-08:00) Tijuana, Baja California</option>
-                <option value="-7">(GMT-07:00) Arizona</option>
-                <option value="-7">(GMT-07:00) Chihuahua, La Paz, Mazatlan</option>
-                <option value="-7">(GMT-07:00) Mountain Time (US & Canada)</option>
-                <option value="-6">(GMT-06:00) Central America</option>
-                <option value="-6">(GMT-06:00) Central Time (US & Canada)</option>
-                <option value="-6">(GMT-06:00) Guadalajara, Mexico City, Monterrey</option>
-                <option value="-6">(GMT-06:00) Saskatchewan</option>
-                <option value="-5">(GMT-05:00) Bogota, Lima, Quito, Rio Branco</option>
-                <option value="-5">(GMT-05:00) Eastern Time (US & Canada)</option>
-                <option value="-5">(GMT-05:00) Indiana (East)</option>
-                <option value="-4">(GMT-04:00) Atlantic Time (Canada)</option>
-                <option value="-4">(GMT-04:00) Caracas, La Paz</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label for="currency" class="form-label">Currency</label>
-              <select id="currency" class="select2 form-select">
-                <option value="">Select Currency</option>
-                <option value="usd">USD</option>
-                <option value="euro">Euro</option>
-                <option value="pound">Pound</option>
-                <option value="bitcoin">Bitcoin</option>
-              </select>
-            </div>
-          </div>
-          <div class="mt-2">
-            <button type="submit" class="btn btn-primary me-3">Save changes</button>
-            <button type="reset" class="btn btn-label-secondary">Cancel</button>
-          </div>
-        </form>
-      </div>
-      <!-- /Account -->
-    </div>
-    <div class="card">
-      <h5 class="card-header">Delete Account</h5>
-      <div class="card-body">
-        <div class="mb-6 col-12 mb-0">
-          <div class="alert alert-warning">
-            <h5 class="alert-heading mb-1">Are you sure you want to delete your account?</h5>
-            <p class="mb-0">Once you delete your account, there is no going back. Please be certain.</p>
-          </div>
+      <div class="row gy-4 gx-6">
+        <div class="col-md-6">
+          <label for="name" class="form-label">Nom complet</label>
+          <input class="form-control" type="text" id="name" name="name" value="{{ old('name', auth()->user()->name) }}" required />
+          @error('name')<div class="text-danger small">{{ $message }}</div>@enderror
         </div>
-        <form id="formAccountDeactivation" onsubmit="return false">
-          <div class="form-check my-8">
-            <input class="form-check-input" type="checkbox" name="accountActivation" id="accountActivation" />
-            <label class="form-check-label" for="accountActivation">I confirm my account deactivation</label>
-          </div>
-          <button type="submit" class="btn btn-danger deactivate-account" disabled>Deactivate Account</button>
-        </form>
-      </div>
+
+        <div class="col-md-6">
+          <label for="email" class="form-label">Email</label>
+          <input class="form-control" type="email" id="email" name="email" value="{{ old('email', auth()->user()->email) }}" required />
+          @error('email')<div class="text-danger small">{{ $message }}</div>@enderror
+        </div>
+
+        <div class="col-md-6">
+          <label for="country" class="form-label">Pays</label>
+          <select class="form-select" id="country" name="country">
+            @php
+              $countries = [
+                'CI'=>'Côte d\'Ivoire','SN'=>'Sénégal','BF'=>'Burkina Faso','ML'=>'Mali','NE'=>'Niger','BJ'=>'Bénin','TG'=>'Togo','GN'=>'Guinée','GW'=>'Guinée-Bissau','CM'=>'Cameroun','GA'=>'Gabon','CG'=>'Congo-Brazzaville','CD'=>'RDC','CF'=>'Centrafrique','TD'=>'Tchad','GQ'=>'Guinée équatoriale','DJ'=>'Djibouti','KM'=>'Comores','MG'=>'Madagascar','MU'=>'Maurice','SC'=>'Seychelles','MR'=>'Mauritanie','TN'=>'Tunisie','DZ'=>'Algérie','MA'=>'Maroc'
+              ];
+              $savedCountry = old('country', auth()->user()->country_code);
+            @endphp
+            <option value="">Sélectionner un pays</option>
+            @foreach($countries as $code => $label)
+              <option value="{{ $code }}" {{ $savedCountry === $code ? 'selected' : '' }}>{{ $label }}</option>
+            @endforeach
+          </select>
+          @error('country')<div class="text-danger small">{{ $message }}</div>@enderror
+        </div>
+
+        <div class="col-md-6">
+          <label for="phone_number" class="form-label">Numéro de téléphone</label>
+          <input class="form-control" type="tel" id="phone_number" name="phone_number" value="{{ old('phone_number', auth()->user()->phone_number) }}" placeholder="0700000000" />
+          <small class="text-muted">Le drapeau et l'indicatif sont détectés automatiquement.</small>
+          @error('phone_number')<div class="text-danger small">{{ $message }}</div>@enderror
+        </div>
     </div>
+    <div class="mt-6">
+        <button type="submit" class="btn btn-primary me-2">Enregistrer</button>
+        <a href="{{ route('user.profile', ['tab' => 'account']) }}" class="btn btn-label-secondary">Annuler</a>
+      </div>
+    </form>
   </div>
 </div>
+
+<script>
+  (function () {
+    const cssId = 'intl-tel-input-css';
+    if (!document.getElementById(cssId)) {
+      const link = document.createElement('link');
+      link.id = cssId;
+      link.rel = 'stylesheet';
+      link.href = 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.0/build/css/intlTelInput.css';
+      document.head.appendChild(link);
+    }
+
+    function loadIntlTelInput() {
+      return new Promise(function (resolve, reject) {
+        if (window.intlTelInput) return resolve(window.intlTelInput);
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.0/build/js/intlTelInput.min.js';
+        script.onload = function () { resolve(window.intlTelInput); };
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const phoneInput = document.getElementById('phone_number');
+      const countrySelect = document.getElementById('country');
+      const form = document.getElementById('profileAccountForm');
+      if (!phoneInput || !countrySelect || !form) return;
+
+      loadIntlTelInput().then(function (intlTelInput) {
+        const iti = intlTelInput(phoneInput, {
+          initialCountry: countrySelect.value ? countrySelect.value.toLowerCase() : 'auto',
+          separateDialCode: true,
+          nationalMode: false,
+          autoPlaceholder: 'aggressive',
+          geoIpLookup: function (callback) {
+            fetch('https://ipapi.co/json/')
+              .then(function (res) { return res.json(); })
+              .then(function (data) {
+                const code = (data && data.country_code) ? data.country_code.toLowerCase() : 'ci';
+                callback(code);
+                if (!countrySelect.value) countrySelect.value = code.toUpperCase();
+              })
+              .catch(function () {
+                callback('ci');
+                if (!countrySelect.value) countrySelect.value = 'CI';
+              });
+          },
+          utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.0/build/js/utils.js'
+        });
+
+        countrySelect.addEventListener('change', function () {
+          if (countrySelect.value) iti.setCountry(countrySelect.value.toLowerCase());
+        });
+
+        phoneInput.addEventListener('countrychange', function () {
+          const data = iti.getSelectedCountryData();
+          if (data && data.iso2) countrySelect.value = data.iso2.toUpperCase();
+        });
+
+        form.addEventListener('submit', function () {
+          const normalized = iti.getNumber();
+          if (normalized) phoneInput.value = normalized;
+        });
+      }).catch(function () {
+        // fallback silencieux
+      });
+    });
+  })();
+</script>
 
 @endsection

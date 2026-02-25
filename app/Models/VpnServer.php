@@ -27,6 +27,18 @@ class VpnServer extends Model
         'supported_protocols',
         'is_online',
         'is_active',
+        
+        'server_type',
+      'wg_network',
+      'wg_server_address',
+      'wg_server_public_key',
+      'wg_endpoint_address',
+      'wg_endpoint_port',
+      'wg_interface',
+      'wg_dns',
+      'wg_mtu',
+      'wg_persistent_keepalive',
+      'wg_client_ip_start',
     ];
 
     protected $casts = [

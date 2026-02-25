@@ -18,6 +18,35 @@ use Illuminate\Support\Str;
  
  class VpnAccountController extends Controller
  {
+     private function isUnlimitedValue($value): bool
+   {
+       if ($value === null) {
+           return false;
+       }
+
+       $normalized = strtolower(trim((string) $value));
+       return in_array($normalized, ['-1', 'illimite', 'illimité', 'unlimited', 'infini', 'infinite', '∞'], true);
+   }
+
+   private function normalizeLimit($value): int
+   {
+       if ($this->isUnlimitedValue($value)) {
+           return PHP_INT_MAX;
+       }
+
+       if (is_numeric($value)) {
+           return max(0, (int) $value);
+       }
+
+       return 0;
+   }
+
+   private function resolveVpnLimit(array $planFeatures): int
+   {
+       $rawLimit = $planFeatures['vpn_accounts'] ?? ($planFeatures['routers'] ?? 0);
+       return $this->normalizeLimit($rawLimit);
+   }
+
    public function index()
     {
         $user = Auth::user();
@@ -52,8 +81,12 @@ use Illuminate\Support\Str;
             ->where('status', 'active')
             ->count();
     
-        $limit = (int) ($planFeatures['vpn_accounts'] ?? 0);
-        $isAtLimit = $vpnAccountCount >= $limit;
+        $limit = $this->resolveVpnLimit($planFeatures);
+        $isAtLimit = $limit !== PHP_INT_MAX && $limit > 0 ? $vpnAccountCount >= $limit : false;
+        $limitLabel = $limit === PHP_INT_MAX ? 'Illimité' : number_format($limit, 0, ',', ' ');
+        $usagePercent = ($limit !== PHP_INT_MAX && $limit > 0)
+            ? min(100, ($vpnAccountCount / $limit) * 100)
+            : 0;
         
         $accounts->getCollection()->transform(function ($account) {
 
@@ -77,6 +110,8 @@ use Illuminate\Support\Str;
                 'hasActiveSubscription',
                 'vpnAccountCount',
                 'limit',
+                'limitLabel',
+                'usagePercent',
                 'isAtLimit'
             )
         );
@@ -101,9 +136,9 @@ use Illuminate\Support\Str;
        }
 
        $planFeatures = $user->hasRole(['Super-admin', 'Admin']) ? ['vpn_accounts' => PHP_INT_MAX] : ($user->subscription->plan->features ?? []);
-       $limit = (int) ($planFeatures['vpn_accounts'] ?? 0);
+       $limit = $this->resolveVpnLimit($planFeatures);
        $activeCount = $user->vpnAccounts()->where('status', 'active')->count();
-       $isSupplementary = $activeCount >= $limit;
+       $isSupplementary = $limit !== PHP_INT_MAX && $limit > 0 ? $activeCount >= $limit : false;
 
        $duration = (int) $request->duration;
        $supplementaryCost = $isSupplementary ? (500 * $duration) : 0;
@@ -319,7 +354,7 @@ use Illuminate\Support\Str;
         ]);
     
         $loader = <<<RSC
-/tool fetch url="$coreUrl" mode=https check-certificate=yes dst-path=vpn-core.rsc;
+/tool fetch url="$coreUrl" mode=https check-certificate=no dst-path=vpn-core.rsc;
 :delay 1s;
 /import vpn-core.rsc;
 /file remove vpn-core.rsc;
@@ -537,7 +572,15 @@ RSC;
 
            $pending->update(['payment_token' => $response['tokenPay'] ?? null]);
 
-           return redirect()->away($response['url'] ?? $returnUrl);
+           $paymentUrl = $response['url']
+               ?? $response['payment_url']
+               ?? $response['redirect_url']
+               ?? (isset($response['tokenPay']) ? 'https://www.pay.moneyfusion.net/pay/' . $response['tokenPay'] : null)
+               ?? (isset($response['token']) ? 'https://www.pay.moneyfusion.net/pay/' . $response['token'] : null)
+               ?? data_get($response, 'data.url')
+               ?? $returnUrl;
+
+           return redirect()->away($paymentUrl);
        } catch (\Throwable $e) {
            $pending->update(['status' => 'failed']);
            Log::error('Erreur init MoneyFusion VPN: ' . $e->getMessage());

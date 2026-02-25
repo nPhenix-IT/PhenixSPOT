@@ -7,19 +7,13 @@
       "slug": "pages-home"
     },
     {
-      "menuHeader": "Service Hotspot"
+      "menuHeader": "Service Hotspot & PPPoE"
     },
     {
-      "name": "Gestion Hotspot",
+      "name": "Hotspot",
       "icon": "menu-icon icon-base ti tabler-wifi",
       "slug": "gestion-hotspot",
       "submenu": [
-        {
-            "url": "/routers",
-            "icon": "menu-icon icon-base ti tabler-router",
-            "name": "Mes Routeurs",
-            "slug": "user.routers.index"
-        },
         {
           "url": "/profiles",
       "icon": "menu-icon icon-base ti tabler-users-group",
@@ -31,45 +25,74 @@
       "icon": "menu-icon icon-base ti tabler-ticket",
           "name": "Gérer Vouchers",
           "slug": "user.vouchers.index"
-        },
-        {
-          "url": "/sales-page",
-          "icon": "menu-icon icon-base ti tabler-layout",
-          "name": "Page de vente",
-          "slug": "user.sales-page.edit"
-        },
-        {
-          "url": "/reports",
-          "icon": "menu-icon icon-base ti tabler-chart-bar",
-          "name": "Reporting & Exports",
-          "slug": "user.reports.index"
         }
       ]
     },
     {
-      "menuHeader": "Service VPN"
-    },
-    {
-      "name": "Services VPN",
-      "icon": "menu-icon icon-base ti tabler-shield-lock",
-      "slug": "vpn-services",
+      "name": "PPPoE",
+      "badge": "Bientôt",
+      "icon": "menu-icon icon-base ti tabler-brand-tidal",
+      "slug": "gestion-hotspot",
       "submenu": [
-        {
-          "url": "/vpn-accounts",
-          "icon": "menu-icon icon-base ti tabler-brand-openvpn",
-          "name": "Comptes VPN",
-          "slug": "user.vpn-accounts.index"
-        }
-      ]
+            {
+              "url": "#",
+              "icon": "menu-icon icon-base ti tabler-topology-bus",
+              "name": "Pool PPPoE",
+              "slug": "#"
+            },
+            {
+              "url": "#",
+              "icon": "menu-icon icon-base ti tabler-users-group",
+              "name": "Profils",
+              "slug": "#"
+            },
+            {
+              "url": "#",
+              "icon": "menu-icon icon-base ti tabler-users-group",
+              "name": "Compte PPPoE",
+              "slug": "#"
+            }
+         ] 
+    },
+    {
+      "menuHeader": "NAS"
+    },
+    {
+      "name": "Mes Routeurs",
+      "url": "/routers",
+      "icon": "menu-icon icon-base ti tabler-router",
+      "slug": "user.routers.index"
+    },
+    {
+      "menuHeader": "Service VPN",
+      "icon": "menu-icon icon-base ti tabler-shield-lock"
+    },
+    {
+      "url": "/vpn-accounts",
+      "icon": "menu-icon icon-base ti tabler-brand-openvpn",
+      "name": "Comptes VPN",
+      "slug": "user.vpn-accounts.index"
     },
     {
       "menuHeader": "Paramètres & Finances"
+    },
+    {
+      "url": "/sales-page",
+      "icon": "menu-icon icon-base ti tabler-layout",
+      "name": "Page de vente",
+      "slug": "user.sales-page.edit"
     },
     {
       "url": "/wallet",
       "name": "Mon Portefeuille",
       "icon": "menu-icon icon-base ti tabler-wallet",
       "slug": "user.wallet.index"
+    },
+    {
+      "url": "/reports",
+      "icon": "menu-icon icon-base ti tabler-chart-bar",
+      "name": "Reporting & Exports",
+      "slug": "user.reports.index"
     },
     {
       "url": "/payment-gateways",

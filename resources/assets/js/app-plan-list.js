@@ -64,9 +64,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(addForm).find('[name="price_annually"]').val(data.price_annually);
                 $(addForm).find('[name="features[routers]"]').val(data.features.routers);
                 $(addForm).find('[name="features[vpn_accounts]"]').val(data.features.vpn_accounts);
-                $(addForm).find('[name="features[vouchers]"]').val(data.features.vouchers);
-                $(addForm).find('[name="features[coupon_model]"]').prop('checked', data.features.coupon_model);
+                $(addForm).find('[name="features[active_users]"]').val(data.features.active_users || data.features.users || '');
+                $(addForm).find('[name="features[pppoe]"]').prop('checked', !!data.features.pppoe);
                 $(addForm).find('[name="features[sales_page]"]').prop('checked', data.features.sales_page);
+                $(addForm).find('[name="features[advanced_reports]"]').prop('checked', !!data.features.advanced_reports);
+                $(addForm).find('[name="features[support_level]"]').val(data.features.support_level || 'Standard');
                 $(addForm).find('[name="is_active"]').prop('checked', data.is_active);
                 new bootstrap.Modal(addModal).show();
             });

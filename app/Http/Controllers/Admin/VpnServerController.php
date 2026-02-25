@@ -5,108 +5,107 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\VpnServer;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
-use RouterOS\Client;
-use RouterOS\Config;
 
 class VpnServerController extends Controller
 {
-    // public function index(Request $request)
+    /**
+     * Récupère les données d'un serveur pour la modale d'édition.
+     */
+    public function json(VpnServer $vpnServer)
+    {
+        return response()->json($vpnServer);
+    }
+
     public function index()
     {
-        $servers = VpnServer::withCount('accounts')->latest()->get();
+        $servers = VpnServer::latest()->get();
         return view('content.admin.vpn_servers.index', compact('servers'));
     }
 
+    /**
+     * Stockage mutualisé pour RouterOS et WireGuard
+     */
     public function store(Request $request)
     {
-        $data = $this->validateServer($request, true);
-        $data['supported_protocols'] = ["l2tp", "ovpn", "sstp", "wireguard"];
-        $data['is_online'] = false;
-        $data['is_active'] = true;
-        $data['local_ip_address'] = $data['gateway_ip'];
-        $data['ip_range'] = $data['ip_pool'];
-        $data['account_limit'] = $data['max_accounts'];
-
-        VpnServer::create($data);
-
-        return redirect()->route('admin.vpn-servers.index')->with('success', 'Serveur configuré avec succès !');
-    }
-
-    public function edit(VpnServer $vpnServer)
-    {
-        return view('content.admin.vpn_servers.edit', compact('vpnServer'));
-    }
-    
-
-    public function update(Request $request, VpnServer $vpnServer)
-    {
-        $data = $this->validateServer($request, false);
-
-        if (!$request->filled('api_password')) {
-            unset($data['api_password']);
-        }
-        
-        $data['local_ip_address'] = $data['gateway_ip'];
-        $data['ip_range'] = $data['ip_pool'];
-        $data['account_limit'] = $data['max_accounts'];
-
-        $vpnServer->update($data);
-        return redirect()->route('admin.vpn-servers.index')->with('success', 'Serveur mis à jour avec succès.');
-    }
-
-    public function testConnection(Request $request)
-    {
-        $request->validate([
-            'server_id' => 'required|exists:vpn_servers,id',
-        ]);
-
-        $server = VpnServer::findOrFail($request->server_id);
-
         try {
-            $config = new Config([
-                'host' => $server->ip_address,
-                'user' => $server->api_user,
-                'pass' => $server->api_password,
-                'port' => (int) $server->api_port,
-                'timeout' => 5,
-            ]);
+            $data = $this->validateServer($request);
+            
+            // Forçage des valeurs par défaut pour la stabilité
+            $data['is_active'] = $request->boolean('is_active', true);
+            $data['is_online'] = $request->boolean('is_online', false);
+            
+            VpnServer::create($data);
 
-            $client = new Client($config);
-            $identity = $client->query('/system/identity/print')->read();
-
-            $server->update(['is_online' => true]);
-
-            return back()->with('success', 'Connexion RÉUSSIE ! Routeur : ' . ($identity[0]['name'] ?? 'Inconnu'));
+            return response()->json(['success' => true, 'message' => 'Serveur ajouté avec succès']);
         } catch (\Exception $e) {
-            $server->update(['is_online' => false]);
-            Log::error("Erreur MikroTik {$server->ip_address}: " . $e->getMessage());
-            return back()->with('error', 'ÉCHEC de connexion : ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
 
-    public function destroy(VpnServer $vpnServer)
+    public function update(Request $request, VpnServer $vpn_server)
     {
-        $vpnServer->delete();
-        return back()->with('success', 'Serveur supprimé.');
+        try {
+            $data = $this->validateServer($request, false);
+            
+            $data['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : $vpn_server->is_active;
+            $data['is_online'] = $request->has('is_online') ? $request->boolean('is_online') : $vpn_server->is_online;
+
+            $vpn_server->update($data);
+
+            return response()->json(['success' => true, 'message' => 'Serveur mis à jour']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
-    private function validateServer(Request $request, bool $isStore): array
+    public function destroy(VpnServer $vpn_server)
     {
-        $passwordRule = $isStore ? 'required|string' : 'nullable|string';
+        try {
+            $vpn_server->delete();
+            return response()->json(['success' => true, 'message' => 'Serveur supprimé']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Erreur lors de la suppression'], 500);
+        }
+    }
 
-        return $request->validate([
+    /**
+     * Validation unifiée
+     */
+    protected function validateServer(Request $request, $isStore = true)
+    {
+        $rules = [
             'name' => 'required|string|max:255',
-            'ip_address' => 'required|ip',
-            'domain_name' => 'nullable|string|max:255',
-            'profile_name' => 'required|string|max:255',
-            'api_user' => 'required|string|max:255',
-            'api_password' => $passwordRule,
-            'api_port' => 'required|integer',
-            'gateway_ip' => 'required|ip',
-            'ip_pool' => 'required|string|max:255',
-            'max_accounts' => 'required|integer|min:1',
-            'location' => 'nullable|string|max:255',
-        ]);
+            'server_type' => 'required|in:routeros,wireguard',
+            'supported_protocols' => 'nullable',
+        ];
+
+        if ($request->server_type === 'wireguard') {
+            $rules = array_merge($rules, [
+                'wg_server_address' => 'required',
+                'wg_server_public_key' => 'required',
+                'wg_endpoint_address' => 'required',
+                'wg_endpoint_port' => 'required|numeric',
+            ]);
+        } else {
+            $rules = array_merge($rules, [
+                'ip_address' => 'required',
+                'api_user' => 'required',
+                'api_port' => 'required|numeric',
+            ]);
+        }
+
+        $data = $request->validate($rules);
+
+        // Traitement des protocoles (JSON)
+        if (isset($data['supported_protocols'])) {
+            if (is_string($data['supported_protocols'])) {
+                $decoded = json_decode($data['supported_protocols'], true);
+                $data['supported_protocols'] = is_array($decoded) ? $decoded : [$data['supported_protocols']];
+            }
+        }
+
+        return $data;
     }
 }
