@@ -5,13 +5,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Router;
 use App\Models\Nas;
 use App\Models\RadiusServer;
+use App\Services\WireGuard\WireGuardGeneratorService;
+use App\Services\WireGuard\WireGuardIpAllocator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\DataTables;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Log;
-
+use RuntimeException;
 
 class RouterController extends Controller
 {
@@ -117,18 +118,27 @@ class RouterController extends Controller
         }
         $validated['radius_secret'] = $activeServer->radius_secret;
 
-        DB::transaction(function () use ($request, $validated, $user) {
-            $router = Router::updateOrCreate(
-                ['id' => $request->id, 'user_id' => $user->id],
-                $validated
-            );
-            Nas::updateOrCreate(
-                ['nasname' => $router->ip_address],
-                ['shortname' => $router->name, 'secret' => $router->radius_secret, 'description' => $router->description]
-            );
-        });
+        try {
+            DB::transaction(function () use ($request, $validated, $user) {
+                $router = Router::updateOrCreate(
+                    ['id' => $request->id, 'user_id' => $user->id],
+                    $validated
+                );
 
-        return response()->json(['success' => 'Routeur enregistré et synchronisé avec RADIUS avec succès.']);
+                Nas::updateOrCreate(
+                    ['nasname' => $router->ip_address],
+                    ['shortname' => $router->name, 'secret' => $router->radius_secret, 'description' => $router->description]
+                );
+
+                if (!$request->filled('id') || !$router->wireguardClient) {
+                    app(WireGuardGeneratorService::class)->createClientForRouter($router);
+                }
+            });
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['success' => 'Routeur enregistré, synchronisé avec RADIUS et prêt pour WireGuard.']);
     }
 
     public function testApi(Request $request)
@@ -155,6 +165,37 @@ class RouterController extends Controller
         ], 422);
     }
 
+    public function suggestWireguardIp()
+    {
+        $server = \App\Models\VpnServer::query()
+            ->where('server_type', 'wireguard')
+            ->where('is_active', true)
+            ->first();
+
+        if (!$server) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun serveur WireGuard actif disponible.'
+            ], 422);
+        }
+
+        try {
+            $cidr = app(WireGuardIpAllocator::class)->peekNextIp($server);
+
+            return response()->json([
+                'success' => true,
+                'ip_address' => explode('/', $cidr)[0],
+                'cidr' => $cidr,
+            ]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+
     private function isValidHostOrIp(string $value): bool
     {
         if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
@@ -173,11 +214,20 @@ class RouterController extends Controller
     public function destroy(Router $router)
     {
         if ($router->user_id !== Auth::id()) { abort(403); }
+
         DB::transaction(function () use ($router) {
             Nas::where('nasname', $router->ip_address)->delete();
+
+            $wgClient = $router->wireguardClient;
+            if ($wgClient) {
+                app(WireGuardIpAllocator::class)->releaseIp($wgClient->wireguardServer, $wgClient->client_ip);
+                $wgClient->delete();
+            }
+
             $router->delete();
         });
-        return response()->json(['success' => 'Routeur supprimé et désynchronisé de RADIUS avec succès.']);
+
+        return response()->json(['success' => 'Routeur supprimé, RADIUS désynchronisé et IP WireGuard libérée.']);
     }
 
     // public function generateScript(Router $router)
@@ -268,10 +318,15 @@ RSC;
         $radiusServerIp = $activeServer->ip_address;
         $radiusSecret   = $routerModel->radius_secret;
     
+        $wgClient = $routerModel->wireguardClient ?: app(WireGuardGeneratorService::class)->createClientForRouter($routerModel);
+        $wgScript = app(WireGuardGeneratorService::class)->buildMikrotikWireguardScript($wgClient);
+
         $core = <<<RSC
 # ==========================================
-#   PHENIXSPOT - RADIUS CLIENT OPTIMIZED
+#   PHENIXSPOT - WIREGUARD + RADIUS CLIENT
 # ==========================================
+
+{$wgScript}
 
 :local RADIUSIP "$radiusServerIp";
 :local RADIUSSECRET "$radiusSecret";
@@ -308,9 +363,12 @@ RSC;
     interim-update=1m;
 
 # --- Improve reliability
-/radius set [find where address=\$RADIUSIP] src-address=0.0.0.0;
 
-:log info "PhenixSPOT RADIUS client configured (optimized mode)";
+:local ROUTERSRCIP "{$wgClient->client_ip}";
+:set ROUTERSRCIP [:pick \$ROUTERSRCIP 0 [:find \$ROUTERSRCIP "/"]];
+/radius set [find where address=\$RADIUSIP] src-address=\$ROUTERSRCIP;
+
+ :log info "PhenixSPOT WireGuard + RADIUS configuré";
 # ==========================================
 #               END CONFIG
 # ==========================================

@@ -60,6 +60,7 @@
 @endsection
 
 @section('content')
+@php($sellerPhoneSafe = $sellerPhone ?? null)
 <div class="sale-shell">
   <div class="container">
     <div class="row justify-content-center">
@@ -73,12 +74,21 @@
             </div>
             <p class="mt-3 mb-4 text-muted">Cliquez sur le code pour le copier.</p>
             <a href="{{ $loginUrl }}" class="btn btn-primary">
-              Retour à la page de connexion
+              Me connecter automatiquement
             </a>
           @else
             <h2 class="sale-title">Paiement en cours de traitement</h2>
             <p class="sale-subtitle">Votre transaction est en cours de validation. Vous recevrez une confirmation sous peu.</p>
-            <p class="mt-3 text-muted">Si votre code n'est pas généré après quelques minutes, veuillez contacter le vendeur.</p>
+           <p class="mt-3 text-muted mb-3">Si votre code tarde à s'afficher, vous pouvez vérifier manuellement ou contacter le vendeur.</p>
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+              <button type="button" class="btn btn-outline-primary" id="manualCheckBtn">Vérifier manuellement</button>
+            </div>
+            <p class="mt-3 mb-0 text-muted">
+              Contact vendeur:
+              <a href="tel:{{ $sellerPhoneSafe ?? '' }}" class="fw-semibold">
+                {{ $sellerPhoneSafe ?: 'Indisponible' }}
+              </a>
+            </p>
           @endif
         </div>
       </div>
@@ -89,6 +99,29 @@
 
 @section('page-script')
 <script>
+  const isPending = @json($isPending ?? false);
+  const transactionId = @json($transactionId ?? null);
+  const manualCheckBtn = document.getElementById('manualCheckBtn');
+
+  if (manualCheckBtn) {
+    manualCheckBtn.addEventListener('click', () => {
+      const url = new URL(window.location.href);
+      if (transactionId) {
+        url.searchParams.set('transaction_id', transactionId);
+      }
+      window.location.replace(url.toString());
+    });
+  }
+
+  if (isPending && transactionId) {
+    const refreshDelayMs = 5000;
+    setTimeout(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('transaction_id', transactionId);
+      window.location.replace(url.toString());
+    }, refreshDelayMs);
+  }
+
   const voucherChip = document.getElementById('voucherCode');
   if (voucherChip) {
     voucherChip.addEventListener('click', async () => {

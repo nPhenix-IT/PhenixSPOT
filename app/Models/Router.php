@@ -29,4 +29,9 @@ class Router extends Model
     {
         return $this->belongsTo(User::class);
     }
+    
+    public function wireguardClient()
+    {
+        return $this->hasOne(WireguardClient::class);
+    }
 }

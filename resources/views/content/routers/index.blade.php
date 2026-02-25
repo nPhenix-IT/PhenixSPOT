@@ -72,7 +72,11 @@
         <div class="mb-4">
           <h6 class="mb-3 text-primary">Configuration RADIUS</h6>
           <div class="mb-3"><label class="form-label">Nom du routeur</label><input type="text" class="form-control" name="name" /></div>
-          <div class="mb-3"><label class="form-label">Adresse Public (AAA)</label><input type="text" class="form-control" name="ip_address" placeholder="60.20.11.1 ou vpn.phenixspot.com" /></div>
+          <div class="mb-3">
+              <label class="form-label">Adresse Public (AAA)</label>
+              <input type="text" class="form-control bg-light text-muted" name="ip_address" id="router_ip_address" placeholder="IP WireGuard auto-générée" readonly aria-readonly="true" />
+              <small class="text-muted">Prérempli automatiquement à l'ouverture avec la prochaine IP WireGuard disponible.</small>
+          </div>
           <div class="mb-3">
               <label class="form-label">Fabricant</label>
               <select name="brand" class="form-select">

@@ -59,6 +59,7 @@ use Illuminate\Support\Str;
     
         // 🔥 Optimisation ici
         $servers = VpnServer::where('is_online', true)
+            ->where('server_type', 'routeros')
             ->where('is_active', true)
             ->withCount('accounts')
             ->get()
@@ -122,7 +123,8 @@ use Illuminate\Support\Str;
          $user = Auth::user();
        $request->validate([
            'server_id' => 'required|exists:vpn_servers,id',
-           'protocol' => 'required|in:l2tp,ovpn,sstp',
+        //   'protocol' => 'required|in:l2tp,ovpn,sstp',
+            'protocol' => 'required|in:l2tp',
            'duration' => 'required|in:1,3,6,12',
            'use_custom_port' => 'nullable|in:on,1',
            'custom_port_number' => 'nullable|required_if:use_custom_port,on|integer|min:1|max:65535',

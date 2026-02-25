@@ -9,11 +9,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const addRouterOffcanvas = document.getElementById('offcanvasAddRouter');
     const addForm = document.getElementById('addNewRouterForm');
 
+    const nextWireguardIpUrl = '/routers/wireguard/next-ip';
+
+    const preloadWireguardIp = () => {
+        const ipInput = document.getElementById('router_ip_address');
+        if (!ipInput) return;
+
+        $.get(nextWireguardIpUrl, function(response) {
+            if (response?.success && response?.ip_address) {
+                ipInput.value = response.ip_address;
+            }
+        }).fail(function(err) {
+            const message = err?.responseJSON?.message || err?.responseJSON?.error || 'Impossible de générer une IP WireGuard.';
+            Swal.fire({ icon: 'warning', title: 'IP WireGuard', text: message });
+        });
+    };
+
+    const setRouterIpLocked = (locked) => {
+        const ipInput = document.getElementById('router_ip_address');
+        if (!ipInput) return;
+
+        ipInput.readOnly = !!locked;
+        ipInput.classList.toggle('bg-light', !!locked);
+        ipInput.classList.toggle('text-muted', !!locked);
+    };
+
     $('[data-bs-target="#offcanvasAddRouter"]').on('click', function() {
         if (!addForm) return;
         addForm.reset();
         $('#router_id').val('');
         $('#offcanvasAddRouterLabel').html('Ajouter un Routeur');
+        setRouterIpLocked(true);
+        preloadWireguardIp();
     });
 
     if (dt_router_table.length) {
@@ -54,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var router_id = $(this).data('id');
         $.get('/routers/' + router_id + '/edit', function(data) {
             const editOffcanvas = document.getElementById('offcanvasAddRouter');
+            setRouterIpLocked(true);
             $('#router_id').val(data.id);
             $(editOffcanvas).find('[name="name"]').val(data.name);
             $(editOffcanvas).find('[name="ip_address"]').val(data.ip_address);

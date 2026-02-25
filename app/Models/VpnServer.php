@@ -32,6 +32,7 @@ class VpnServer extends Model
       'wg_network',
       'wg_server_address',
       'wg_server_public_key',
+      'wg_server_private_key',
       'wg_endpoint_address',
       'wg_endpoint_port',
       'wg_interface',
@@ -44,6 +45,7 @@ class VpnServer extends Model
     protected $casts = [
         'supported_protocols' => 'array',
         'api_password' => 'encrypted',
+        'wg_server_private_key' => 'encrypted',
         'is_online' => 'boolean',
         'is_active' => 'boolean',
     ];

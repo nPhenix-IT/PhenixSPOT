@@ -19,8 +19,10 @@ class RadiusWebhookController extends Controller
     public function handle(Request $request)
     {
         try {
-            $section = $request->header('X-FreeRadius-Section');
-            $username = $request->input('User-Name.value.0') ?? $request->input('User-Name');
+            $section = $this->extractScalar($request->header('X-FreeRadius-Section'));
+            $username = $this->extractScalar(
+                $request->input('User-Name.value.0') ?? $request->input('User-Name')
+            );
 
             // Correction : On ne rejette plus si le nom d'utilisateur est absent lors de l'accounting
             // (Utile pour les paquets Accounting-On / Accounting-Off du NAS)
@@ -38,7 +40,11 @@ class RadiusWebhookController extends Controller
                 case str_contains($section, 'accounting'):
                     // Log optionnel pour le debug
                     if (!$username) {
-                        Log::info("Accounting global reçu du NAS: " . $request->input('NAS-IP-Address'));
+                        $nasIp = $this->extractScalar($request->input('NAS-IP-Address'));
+                        Log::info('Accounting global reçu du NAS', [
+                            'nas_ip' => $nasIp,
+                            'section' => $section,
+                        ]);
                     }
                     return response()->json(['control:Auth-Type' => 'Accept']);
 
@@ -50,6 +56,32 @@ class RadiusWebhookController extends Controller
             Log::error('Radius Webhook Error: ' . $e->getMessage());
             return response()->json(['control:Auth-Type' => 'Reject'], 500);
         }
+    }
+    
+    /**
+     * Normalise les valeurs potentiellement envoyées par FreeRADIUS en tableaux imbriqués.
+     */
+    private function extractScalar(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_string($value) || is_numeric($value)) {
+            $normalized = trim((string) $value);
+            return $normalized === '' ? null : $normalized;
+        }
+
+        if (is_array($value)) {
+            if (array_key_exists('value', $value)) {
+                return $this->extractScalar($value['value']);
+            }
+
+            $first = reset($value);
+            return $this->extractScalar($first);
+        }
+
+        return null;
     }
 
     /**

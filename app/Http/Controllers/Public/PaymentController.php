@@ -20,6 +20,12 @@ use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
+    private const SUCCESS_EVENTS = [
+        'payin.session.completed',
+        'payment.completed',
+        'payment.success',
+    ];
+
     /**
      * Gère la notification webhook de Money Fusion.
      * C'est la méthode la plus fiable pour confirmer un paiement.
@@ -30,7 +36,7 @@ class PaymentController extends Controller
         Log::info('Webhook Money Fusion reçu :', $request->all());
 
         $data = $request->all();
-        $event = $data['event'] ?? null;
+        $event = strtolower((string) ($data['event'] ?? ''));
         $personalInfo = $data['personal_Info'][0] ?? [];
         $transactionId = $personalInfo['orderId']
             ?? $personalInfo['transaction_id']
@@ -38,8 +44,8 @@ class PaymentController extends Controller
             ?? null;
         $tokenPay = $data['tokenPay'] ?? null;
 
-        // On ne traite que les événements de paiement complété et si on a notre ID de transaction
-        if ($event === 'payin.session.completed') {
+        // On traite les événements de paiement confirmé / payloads success multi-formats.
+        if ($this->isSuccessfulWebhookPayload($data, $event)) {
             $pendingTransaction = $transactionId
                 ? PendingTransaction::where('transaction_id', $transactionId)->first()
                 : null;
@@ -66,17 +72,30 @@ class PaymentController extends Controller
         // La logique métier est gérée par le webhook pour plus de sécurité.
         $pageConfigs = ['myLayout' => 'blank'];
         $transactionId = $request->query('transaction_id');
+        $callbackToken = $request->query('tokenPay') ?: $request->query('token');
         $pendingTransaction = $transactionId
             ? PendingTransaction::where('transaction_id', $transactionId)->first()
             : null;
+            
+        if (!$pendingTransaction && !empty($callbackToken)) {
+            $pendingTransaction = PendingTransaction::where('payment_token', $callbackToken)->first();
+        }
+
+        if ($pendingTransaction && empty($pendingTransaction->payment_token) && !empty($callbackToken)) {
+            $pendingTransaction->update(['payment_token' => $callbackToken]);
+            $pendingTransaction->refresh();
+        }
+
         if ($pendingTransaction && $pendingTransaction->status === 'pending' && $pendingTransaction->payment_token) {
             $moneyFusion = app(MoneyFusionService::class);
             $statusData = $moneyFusion->checkStatus($pendingTransaction->payment_token);
-            if (!empty($statusData) && $moneyFusion->isPaid($statusData)) {
+            if (!empty($statusData) && $this->isSuccessfulStatusPayload($statusData, $moneyFusion)) {
                 $this->processCompletedPayment($pendingTransaction);
             }
         }
+        
         $voucherCode = $pendingTransaction?->voucher_code;
+        $isPending = $pendingTransaction?->status === 'pending' || empty($voucherCode);
         $user = $pendingTransaction ? User::find($pendingTransaction->user_id) : null;
         $dns = $user?->salePageSetting?->login_dns;
         if ($dns) {
@@ -89,6 +108,16 @@ class PaymentController extends Controller
         }
 
         return view('content.public.payment_status', compact('pageConfigs', 'voucherCode', 'loginUrl'));
+        $sellerPhone = $user?->phone_number;
+
+        return view('content.public.payment_status', compact(
+            'pageConfigs',
+            'voucherCode',
+            'loginUrl',
+            'transactionId',
+            'isPending',
+            'sellerPhone'
+        ));
     }
 
     private function processCompletedPayment(PendingTransaction $pendingTransaction): void
@@ -97,13 +126,22 @@ class PaymentController extends Controller
         $code = null;
         
         DB::transaction(function () use ($pendingTransaction, &$profile, &$code) {
-            $user = User::find($pendingTransaction->user_id);
-            $profile = Profile::find($pendingTransaction->profile_id);
+            $lockedTransaction = PendingTransaction::whereKey($pendingTransaction->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$lockedTransaction || $lockedTransaction->status === 'completed') {
+                $code = $lockedTransaction?->voucher_code;
+                return;
+            }
+
+            $user = User::find($lockedTransaction->user_id);
+            $profile = Profile::find($lockedTransaction->profile_id);
 
             $wallet = $user->wallet;
             $creditAmount = $profile->price;
-            if ($pendingTransaction->commission_payer === 'seller') {
-                $creditAmount = max(0, $profile->price - $pendingTransaction->commission_amount);
+            if ($lockedTransaction->commission_payer === 'seller') {
+                $creditAmount = max(0, $profile->price - $lockedTransaction->commission_amount);
             }
 
             $code = $this->generateVoucherCode();
@@ -130,11 +168,20 @@ class PaymentController extends Controller
                 'description' => 'Vente du voucher ' . $code,
             ]);
 
-            $pendingTransaction->update([
+            $lockedTransaction->update([
+                'status' => 'completed',
+                'voucher_code' => $code,
+            ]);
+
+            $pendingTransaction->forceFill([
                 'status' => 'completed',
                 'voucher_code' => $code,
             ]);
         });
+        
+        if (!$code || !$profile) {
+            return;
+        }
 
         $user = User::find($pendingTransaction->user_id);
         $walletBalance = $user->wallet->balance;
@@ -145,15 +192,28 @@ class PaymentController extends Controller
         }
 
         if ($user && $user->telegram_bot_token && $user->telegram_chat_id && $code && $profile) {
-            $telegramMessage = "🛒 <b>Nouvelle vente - e-Ticket</b>\n\n";
+            $salePrice = (float) $profile->price;
+            $commissionAmount = (float) ($pendingTransaction->commission_amount ?? 0);
+            $commissionPercentFromEnv = (float) config('fees.sales_commission_percent', 0);
+            $creditedAmount = $pendingTransaction->commission_payer === 'seller'
+                ? max(0, $salePrice - $commissionAmount)
+                : $salePrice;
+
+            $telegramMessage = "🛒 <b>Nouvelle vente | e-Ticket</b>\n\n";
             $telegramMessage .= "Pass: {$profile->name}\n";
             $telegramMessage .= "Code: {$code}\n";
-            $telegramMessage .= "Montant: " . number_format($profile->price, 0, ',', ' ') . " FCFA\n";
-            // if ($pendingTransaction->customer_number) {
-                $telegramMessage .= "Client: {$pendingTransaction->customer_number}\n\n";
-            // }
+            $telegramMessage .= "Client: " . ($pendingTransaction->customer_number ?: 'N/A') . "\n\n";
+
+            if ($pendingTransaction->commission_payer === 'seller') {
+                $telegramMessage .= "Prix de vente : " . number_format($salePrice, 0, ',', ' ') . " FCFA\n";
+                $telegramMessage .= "Frais: " . rtrim(rtrim(number_format($commissionPercentFromEnv, 2, '.', ''), '0'), '.') . "%\n";
+                $telegramMessage .= "Montant credité: " . number_format($creditedAmount, 0, ',', ' ') . " FCFA\n\n";
+            } else {
+                $telegramMessage .= "Montant credité: " . number_format($creditedAmount, 0, ',', ' ') . " FCFA\n\n";
+            }
+            
             if ($walletBalance !== null) {
-                $telegramMessage .= "👛 <b>Solde Actuel</b>: " . number_format($walletBalance, 0, ',', ' ') . " FCFA\n";
+                $telegramMessage .= "👛 <b>Solde Actuel: " . number_format($walletBalance, 0, ',', ' ') . " FCFA</b>\n";
             }
             app(TelegramService::class)->sendMessage(
                 $user->telegram_bot_token,
@@ -171,5 +231,41 @@ class PaymentController extends Controller
             $code .= $characters[rand(0, strlen($characters) - 1)];
         }
         return $code;
+    }
+    
+    private function isSuccessfulWebhookPayload(array $data, string $event): bool
+    {
+        if (in_array($event, self::SUCCESS_EVENTS, true)) {
+            return true;
+        }
+
+        $statusCandidates = [
+            strtolower((string) ($data['status'] ?? '')),
+            strtolower((string) ($data['payment_status'] ?? '')),
+            strtolower((string) data_get($data, 'data.status', '')),
+            strtolower((string) data_get($data, 'data.statut', '')),
+            strtolower((string) ($data['statut'] ?? '')),
+        ];
+
+        return collect($statusCandidates)
+            ->contains(fn ($value) => in_array($value, ['paid', 'success', 'succeeded', 'completed', 'true', '1'], true));
+    }
+
+    private function isSuccessfulStatusPayload(array $statusData, MoneyFusionService $moneyFusion): bool
+    {
+        if ($moneyFusion->isPaid($statusData)) {
+            return true;
+        }
+
+        $statusCandidates = [
+            strtolower((string) ($statusData['status'] ?? '')),
+            strtolower((string) ($statusData['payment_status'] ?? '')),
+            strtolower((string) data_get($statusData, 'data.status', '')),
+            strtolower((string) data_get($statusData, 'data.statut', '')),
+            strtolower((string) ($statusData['statut'] ?? '')),
+        ];
+
+        return collect($statusCandidates)
+            ->contains(fn ($value) => in_array($value, ['paid', 'success', 'succeeded', 'completed'], true));
     }
 }

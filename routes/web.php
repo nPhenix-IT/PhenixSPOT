@@ -42,7 +42,8 @@ Route::get('vpn/scripts/{account}/core', [VpnAccountController::class, 'scriptCo
 // Génère une commande MikroTik (loader) à coller dans le terminal (JSON)
 Route::get('routers/{router}/radius/install-command', [RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
 // (Optionnel mais recommandé) loader/core text/plain si tu veux aussi supporter /tool fetch
-Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader')->middleware('signed');
+Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader');
+// Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader')->middleware('signed');
 Route::get('routers/scripts/{router}/core', [RouterController::class, 'radiusScriptCore'])->name('routers.radius.script.core');
 
 // Routes Utilisateur
@@ -93,6 +94,7 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
     Route::get('/routers/{router}/radius/install-command', [\App\Http\Controllers\User\RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
     Route::post('routers/test-api', [RouterController::class, 'testApi'])->name('routers.test-api');
+    Route::get('routers/wireguard/next-ip', [RouterController::class, 'suggestWireguardIp'])->name('routers.wireguard.next-ip');
     Route::resource('routers', RouterController::class);
 });
 

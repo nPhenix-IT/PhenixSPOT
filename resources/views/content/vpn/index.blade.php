@@ -389,9 +389,9 @@ input[type="radio"]:checked + .protocol-card {
                                 <i class="ti tabler-map-pin-filled fs-4"></i>
                             </div>
                             <div>
-                                <div class="fw-bold text-dark">{{ $account->server->name }}</div>
+                                <div class="fw-bold text-dark">{{ $account->server?->name ?? 'Serveur indisponible' }}</div>
                                 <div class="text-muted extra-small" style="font-size: 0.7rem">
-                                    {{ $account->server->location }}
+                                    {{ $account->server?->location ?? 'Localisation indisponible' }}
                                 </div>
                             </div>
                         </div>
@@ -556,8 +556,8 @@ input[type="radio"]:checked + .protocol-card {
                                             <div class="bg-white p-3 rounded-3 shadow-sm border border-primary border-opacity-10">
                                                 <label class="form-label text-muted small fw-bold mb-1">Passerelle</label>
                                                 <div class="input-group input-group-sm">
-                                                    <input type="text" class="form-control border-0 bg-light fw-bold" value="{{ $account->server->domain_name ?? $account->server->ip_address }}" readonly>
-                                                    <button class="btn btn-primary" onclick="copyText('{{ $account->server->domain_name ?? $account->server->ip_address }}')"><i class="ti tabler-copy"></i></button>
+                                                    <input type="text" class="form-control border-0 bg-light fw-bold" value="{{ $account->server?->domain_name ?? $account->server?->ip_address ?? 'N/A' }}" readonly>
+                                                    <button class="btn btn-primary" onclick="copyText('{{ $account->server?->domain_name ?? $account->server?->ip_address ?? 'N/A' }}')"><i class="ti tabler-copy"></i></button>
                                                 </div>
                                             </div>
 
@@ -584,25 +584,25 @@ input[type="radio"]:checked + .protocol-card {
                                                 @if($account->port_api)
                                                  <div class="list-group-item d-flex justify-content-between align-items-center p-3">
                                                     <span class="badge bg-label-info rounded-pill">API</span>
-                                                    <span class="font-monospace fw-black text-dark">{{ $account->server->domain_name }}:{{ $account->port_api }}</span>
+                                                    <span class="font-monospace fw-black text-dark">{{ $account->server?->domain_name ?? ($account->server?->ip_address ?? 'N/A') }}:{{ $account->port_api }}</span>
                                                 </div>
                                                 @endif
                                                 @if($account->port_winbox)
                                                 <div class="list-group-item d-flex justify-content-between align-items-center p-3">
                                                     <span class="badge bg-label-info rounded-pill">Winbox</span>
-                                                    <span class="font-monospace fw-black text-dark">{{ $account->server->domain_name }}:{{ $account->port_winbox }}</span>
+                                                    <span class="font-monospace fw-black text-dark">{{ $account->server?->domain_name ?? ($account->server?->ip_address ?? 'N/A') }}:{{ $account->port_winbox }}</span>
                                                 </div>
                                                 @endif
                                                 @if($account->port_web)
                                                 <div class="list-group-item d-flex justify-content-between align-items-center p-3">
                                                     <span class="badge bg-label-success rounded-pill">Web Port</span>
-                                                    <a href="http://{{ $account->server->domain_name }}:{{ $account->port_web }}" target="_blank" class="fw-black text-primary">{{ $account->server->domain_name }}:{{ $account->port_web }}</a>
+                                                    <a href="http://{{ $account->server?->domain_name ?? $account->server?->ip_address }}:{{ $account->port_web }}" target="_blank" class="fw-black text-primary">{{ $account->server?->domain_name ?? ($account->server?->ip_address ?? 'N/A') }}:{{ $account->port_web }}</a>
                                                 </div>
                                                 @endif
                                                 @if($account->port_custom)
                                                 <div class="list-group-item d-flex justify-content-between align-items-center p-3 bg-label-primary">
                                                     <span class="badge bg-primary rounded-pill">Personnalisé</span>
-                                                    <span class="font-monospace fw-black">{{ $account->server->domain_name }}:{{ $account->port_custom }}</span>
+                                                    <span class="font-monospace fw-black">{{ $account->server?->domain_name ?? ($account->server?->ip_address ?? 'N/A') }}:{{ $account->port_custom }}</span>
                                                 </div>
                                                 @endif
                                             </div>
@@ -1180,4 +1180,3 @@ document.addEventListener('DOMContentLoaded', function() {
     @endif
 });
 </script>
-@endsection

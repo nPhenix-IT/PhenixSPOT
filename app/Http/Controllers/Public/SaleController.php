@@ -50,7 +50,11 @@ class SaleController extends Controller
         ]);
 
         $user = User::where('slug', $slug)->firstOrFail();
-        $profile = $user->profiles()->whereKey($request->profile_id)->firstOrFail();
+        $profile = $user->profiles()
+            ->whereKey($request->profile_id)
+            ->where('price', '>=', 200)
+            ->firstOrFail();
+
         $transactionId = 'TXN-' . strtoupper(Str::random(12));
         $settings = $user->salePageSetting;
         $commissionPercent = $settings->commission_percent ?? config('fees.sales_commission_percent');
@@ -171,16 +175,28 @@ class SaleController extends Controller
         }
 
         if ($user && $user->telegram_bot_token && $user->telegram_chat_id && $code && $profile) {
-            $telegramMessage = "🛒 <b>Nouvelle vente - e-Ticket</b>\n\n";
+            $salePrice = (float) $profile->price;
+            $commissionAmount = (float) ($pendingTransaction->commission_amount ?? 0);
+            $commissionPercentFromEnv = (float) config('fees.sales_commission_percent', 0);
+            $creditedAmount = $pendingTransaction->commission_payer === 'seller'
+                ? max(0, $salePrice - $commissionAmount)
+                : $salePrice;
+
+            $telegramMessage = "🛒 <b>Nouvelle vente | e-Ticket</b>\n\n";
             $telegramMessage .= "Pass: {$profile->name}\n";
             $telegramMessage .= "Code: {$code}\n";
-            $telegramMessage .= "Montant: <b>". number_format($profile->price, 0, ',', ' ') . " FCFA</b>\n";
-            if ($pendingTransaction->customer_number) {
-                $telegramMessage .= "Nº du client: {$pendingTransaction->customer_number}\n\n";
+            $telegramMessage .= "Client: " . ($pendingTransaction->customer_number ?: 'N/A') . "\n\n";
+
+            if ($pendingTransaction->commission_payer === 'seller') {
+                $telegramMessage .= "Prix de vente : " . number_format($salePrice, 0, ',', ' ') . " FCFA\n";
+                $telegramMessage .= "Frais: " . rtrim(rtrim(number_format($commissionPercentFromEnv, 2, '.', ''), '0'), '.') . "%\n";
+                $telegramMessage .= "Montant credité: " . number_format($creditedAmount, 0, ',', ' ') . " FCFA\n\n";
+            } else {
+                $telegramMessage .= "Montant credité: " . number_format($creditedAmount, 0, ',', ' ') . " FCFA\n\n";
             }
             
             if ($walletBalance !== null) {
-                $telegramMessage .= "💰 <b>Solde Actuel: " . number_format($walletBalance, 0, ',', ' ') . " FCFA</b>\n";
+                $telegramMessage .= "👛 <b>Solde Actuel: " . number_format($walletBalance, 0, ',', ' ') . " FCFA<b>\n";
             }
 
             app(TelegramService::class)->sendMessage(
