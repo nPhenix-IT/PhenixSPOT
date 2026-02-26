@@ -38,6 +38,8 @@ return [
     'moneyfusion' => [
         'api_url' => env('MONEYFUSION_API_URL'),
         'currency' => env('MONEYFUSION_CURRENCY', 'XOF'),
+        'withdrawal_url' => env('MONEYFUSION_WITHDRAWAL_URL', 'https://pay.moneyfusion.net/api/v1/withdraw'),
+        'private_key' => env('MONEYFUSION_PRIVATE_KEY'),
     ],
     
     'kingsmspro' => [

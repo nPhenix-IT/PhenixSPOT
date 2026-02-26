@@ -131,6 +131,7 @@ Route::prefix('payment')->name('public.payment.')->group(function () {
     Route::get('/callback', [PaymentController::class, 'callback'])->name('callback');
     Route::post('/webhook', [PaymentController::class, 'webhook'])->name('webhook');
 });
+Route::post('/withdraw/callback', [WithdrawalController::class, 'moneyfusionWebhook'])->name('api.withdrawals.moneyfusion.webhook');
 
 // --- Route pour le Webhook FreeRADIUS ---
 // Cette route doit être accessible publiquement par le serveur RADIUS.
