@@ -1,0 +1,24 @@
+/* Couleur par défaut (Thème clair ou état inactif) */
+.menu-vertical .menu-item .menu-link i.menu-icon-dynamic {
+    color: #6f6b7d; /* Gris doux par défaut */
+    transition: all 0.2s ease-in-out;
+}
+
+/* Couleur au survol */
+.menu-vertical .menu-item .menu-link:hover i.menu-icon-dynamic {
+    color: var(--bs-primary); /* Utilise la couleur primaire du thème */
+}
+
+/* Couleur quand l'élément est actif */
+.menu-vertical .menu-item.active .menu-link i.menu-icon-dynamic {
+    color: #fff !important; /* Souvent blanc sur fond primaire */
+}
+
+/* Adaptation spécifique au Mode Sombre (Dark Mode) */
+[data-bs-theme="dark"] .menu-vertical .menu-item .menu-link i.menu-icon-dynamic {
+    color: #b6bee3; /* Couleur plus claire pour le mode sombre */
+}
+
+[data-bs-theme="dark"] .menu-vertical .menu-item.active .menu-link i.menu-icon-dynamic {
+    color: #fff !important;
+}

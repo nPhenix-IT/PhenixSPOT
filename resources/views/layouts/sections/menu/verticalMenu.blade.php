@@ -73,7 +73,7 @@ use Illuminate\Support\Str;
       <li class="menu-item {{$activeClass}}">
         <a href="{{ isset($menu->url) ? url($menu->url) : 'javascript:void(0);' }}" class="{{ isset($menu->submenu) ? 'menu-link menu-toggle' : 'menu-link' }}" @if (isset($menu->target) and !empty($menu->target)) target="_blank" @endif>
           @if (isset($menu->icon))
-          <i class="{{ $menu->icon }}"></i>
+          <i class="{{ $menu->icon }} {{ $menu->icon_color ?? '' }}"></i>
           @endif
           <div>{{ isset($menu->name) ? __($menu->name) : '' }}</div>
           @if (isset($menu->badge))
@@ -100,17 +100,6 @@ use Illuminate\Support\Str;
       John Doe
     @endif
     </h5>
-    @if(Auth::check() && Auth::user()->subscription?->plan)
-    <div class="small">
-      <a class="menu-link" href="javascript:void(0)">ABC Company, CEO</a>
-      <h5 class="mb-1">{{ $subscription->plan->name }}</h5>
-    </div>
-    @else
-    <div class="small">
-        <div class="menu-link text-center" href="javascript:void(0)">Aucun abonnement actif</div>
-        <!--<a class="menu-link" href="{{ route('user.plans.index') }}">Voir les plans</a>-->
-    </div>
-    @endif
   </div>
 
 </aside>

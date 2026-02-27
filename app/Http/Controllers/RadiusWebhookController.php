@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Voucher;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Models\Router;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class RadiusWebhookController extends Controller
     public function handle(Request $request)
     {
         try {
-            $section = $this->extractScalar($request->header('X-FreeRadius-Section'));
+            $section = $this->extractScalar($request->header('X-FreeRadius-Section')) ?? '';
             $username = $this->extractScalar(
                 $request->input('User-Name.value.0') ?? $request->input('User-Name')
             );
@@ -35,7 +36,7 @@ class RadiusWebhookController extends Controller
                     return $this->handleAuthorize($username);
 
                 case str_contains($section, 'post-auth'):
-                    return $this->handlePostAuth($username);
+                    return $this->handlePostAuth($username, $request);
 
                 case str_contains($section, 'accounting'):
                     // Log optionnel pour le debug
@@ -57,7 +58,7 @@ class RadiusWebhookController extends Controller
             return response()->json(['control:Auth-Type' => 'Reject'], 500);
         }
     }
-    
+
     /**
      * Normalise les valeurs potentiellement envoyées par FreeRADIUS en tableaux imbriqués.
      */
@@ -181,7 +182,7 @@ class RadiusWebhookController extends Controller
     /**
      * Phase Post-Auth : Crédit unique + Notification Telegram.
      */
-    private function handlePostAuth($username)
+    private function handlePostAuth($username, Request $request)
     {
         $voucher = Voucher::where('code', $username)
             ->where('status', 'new')
@@ -190,10 +191,27 @@ class RadiusWebhookController extends Controller
 
         if ($voucher) {
             try {
-                DB::transaction(function () use ($voucher, $username) {
+                $nasIp = $this->extractScalar(
+                    $request->input('NAS-IP-Address.value.0') ?? $request->input('NAS-IP-Address')
+                );
+                $nasIdentifier = $this->extractScalar(
+                    $request->input('NAS-Identifier.value.0') ?? $request->input('NAS-Identifier')
+                );
+
+                $router = null;
+                if ($nasIp) {
+                    $router = Router::where('ip_address', $nasIp)
+                        ->orWhere('api_address', $nasIp)
+                        ->first();
+                }
+
+                DB::transaction(function () use ($voucher, $username, $router, $nasIp, $nasIdentifier) {
                     $voucher->update([
                         'status' => 'used',
-                        'used_at' => now()
+                        'used_at' => now(),
+                        'activated_router_id' => $router?->id,
+                        'activated_router_ip' => $nasIp,
+                        'activation_nas_identifier' => $nasIdentifier,
                     ]);
 
                     if ($voucher->source === 'manual_generation' && 
@@ -220,6 +238,14 @@ class RadiusWebhookController extends Controller
                         Log::info("Crédit et Notification Telegram effectués pour: $username");
                     }
                 });
+
+                Log::info('Voucher first activation router captured', [
+                    'voucher_code' => $voucher->code,
+                    'username' => $username,
+                    'router_id' => $router?->id,
+                    'router_ip' => $nasIp,
+                    'nas_identifier' => $nasIdentifier,
+                ]);
             } catch (\Exception $e) {
                 Log::error("Erreur Post-Auth pour $username: " . $e->getMessage());
             }

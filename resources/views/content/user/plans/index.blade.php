@@ -197,55 +197,96 @@
       <strong>Upgrade intelligent :</strong> routeur supplémentaire +3 000 FCFA/mois, compte VPN supplémentaire +500 FCFA/mois.
     </div>
 
-    <div class="comparison-shell">
-      <div class="table-responsive">
-        <table class="table align-middle text-center">
-          <thead>
-            <tr>
-              <th class="text-start">Comparatif des plans</th>
-              <th>STARTER</th>
-              <th>PRO</th>
-              <th>ISP</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach($comparisonRows as $row)
-              <tr>
-                <td class="comparison-feature text-start">{{ $row['label'] }}</td>
-                @foreach(['starter', 'pro', 'isp'] as $tier)
-                  @php
-                    $plan = $planValueByTier[$tier] ?? null;
-                    $features = $plan?->features ?? [];
-                    $type = $row['type'] ?? 'text';
+    <div class="accordion mt-4" id="plansComparisonAccordion">
+      <div class="accordion-item border rounded-3">
+        <h2 class="accordion-header" id="headingComparison">
+          <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseComparison" aria-expanded="true" aria-controls="collapseComparison">
+            Tableau comparatif des forfaits
+          </button>
+        </h2>
+        <div id="collapseComparison" class="accordion-collapse collapse show" aria-labelledby="headingComparison" data-bs-parent="#plansComparisonAccordion">
+          <div class="accordion-body p-0">
+            <div class="comparison-shell mt-0 border-0 rounded-0">
+              <div class="table-responsive">
+                <table class="table align-middle text-center">
+                  <thead>
+                    <tr>
+                      <th class="text-start">Comparatif des plans</th>
+                      <th>STARTER</th>
+                      <th>PRO</th>
+                      <th>ISP</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @foreach($comparisonRows as $row)
+                      <tr>
+                        <td class="comparison-feature text-start">{{ $row['label'] }}</td>
+                        @foreach(['starter', 'pro', 'isp'] as $tier)
+                          @php
+                            $plan = $planValueByTier[$tier] ?? null;
+                            $features = $plan?->features ?? [];
+                            $type = $row['type'] ?? 'text';
 
-                    if (!$plan) {
-                      $display = '—';
-                    } elseif ($type === 'price_monthly') {
-                      $display = number_format((float) $plan->price_monthly, 0, ',', ' ') . ' FCFA';
-                    } elseif ($type === 'bool') {
-                      $display = !empty($features[$row['feature']]);
-                    } else {
-                      $display = $formatLimit($features[$row['feature']] ?? null);
-                    }
-                  @endphp
+                            if (!$plan) {
+                              $display = '—';
+                            } elseif ($type === 'price_monthly') {
+                              $display = number_format((float) $plan->price_monthly, 0, ',', ' ') . ' FCFA';
+                            } elseif ($type === 'bool') {
+                              $display = !empty($features[$row['feature']]);
+                            } else {
+                              $display = $formatLimit($features[$row['feature']] ?? null);
+                            }
+                          @endphp
 
-                  <td class="comparison-value">
-                    @if(($row['type'] ?? null) === 'bool')
-                      @if($display)
-                        <i class="icon-base ti tabler-check comparison-check"></i>
-                      @else
-                        <i class="icon-base ti tabler-x comparison-x"></i>
-                      @endif
-                    @else
-                      {{ $display }}
-                    @endif
-                  </td>
-                @endforeach
-              </tr>
-            @endforeach
-          </tbody>
-        </table>
+                          <td class="comparison-value">
+                            @if(($row['type'] ?? null) === 'bool')
+                              @if($display)
+                                <i class="icon-base ti tabler-check comparison-check"></i>
+                              @else
+                                <i class="icon-base ti tabler-x comparison-x"></i>
+                              @endif
+                            @else
+                              {{ $display }}
+                            @endif
+                          </td>
+                        @endforeach
+                      </tr>
+                    @endforeach
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+
+    <div class="row g-3 mt-1">
+      <div class="col-md-4">
+        <div class="card shadow-none border">
+          <div class="card-body">
+            <h6 class="mb-1">Paiement sécurisé</h6>
+            <small class="text-muted">Payez via Wallet interne ou MoneyFusion selon votre préférence.</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-none border">
+          <div class="card-body">
+            <h6 class="mb-1">Activation rapide</h6>
+            <small class="text-muted">Après confirmation de paiement, votre plan est activé automatiquement.</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-none border">
+          <div class="card-body">
+            <h6 class="mb-1">Historique transparent</h6>
+            <small class="text-muted">Toutes les transactions apparaissent dans votre wallet et vos notifications.</small>
+          </div>
+        </div>
+      </div>
+    </div>
     </div>
   </div>
   </div>

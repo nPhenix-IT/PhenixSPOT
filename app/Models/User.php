@@ -10,7 +10,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Jetstream\HasTeams;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles; // <-- AJOUTER CECI
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
@@ -32,6 +32,7 @@ class User extends Authenticatable
         'email',
         'phone_number',
         'country_code',
+        'trial_used_at',
         'sms_enabled',
         'sms_sender',
         'telegram_bot_token',
@@ -63,62 +64,61 @@ class User extends Authenticatable
     protected $appends = [
         'profile_photo_url',
     ];
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
     
     protected $casts = [
         'email_verified_at' => 'datetime',
         'mikrotik_password' => 'encrypted', // Chiffrement automatique
+        'trial_used_at' => 'datetime',
+        'password' => 'hashed',
+        'mikrotik_password' => 'encrypted',
     ];
+
     public function subscription()
     {
         // Un utilisateur n'a qu'un seul abonnement à la fois
         return $this->hasOne(\App\Models\Subscription::class)->latestOfMany();
     }
     
+
     public function profiles()
     {
         return $this->hasMany(\App\Models\Profile::class);
     }
     
+
     public function vouchers()
     {
         return $this->hasMany(\App\Models\Voucher::class);
     }
     
+
     public function template()
     {
         return $this->hasOne(Template::class);
     }
     
+
     public function wallet()
     {
         return $this->hasOne(Wallet::class);
     }
+
     public function paymentGateways()
     {
         return $this->hasMany(UserPaymentGateway::class);
     }
+
     public function routers()
     {
         return $this->hasMany(Router::class);
     }
+
     public function vpnAccounts()
     {
-        return $this->hasMany(VpnAccount::class); // Assuming VpnAccount is your VPN account model
+        return $this->hasMany(VpnAccount::class);
     }
     
+
     public function salePageSetting()
     {
         return $this->hasOne(SalePageSetting::class);

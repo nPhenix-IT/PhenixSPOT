@@ -13,12 +13,15 @@
 <h4 class="py-3 mb-4"><span class="text-muted fw-light">Administration /</span> Gestion des Forfaits</h4>
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Liste des forfaits</h5>
+        <div>
+            <h5 class="mb-1">Liste des forfaits</h5>
+            <small class="text-muted">Configurez aussi l'essai gratuit (7 ou 14 jours) appliqué automatiquement aux nouveaux inscrits.</small>
+        </div>
         <button class="btn btn-primary" type="button" id="add-new-plan-btn"><i class="icon-base ti tabler-plus me-1"></i> Ajouter un forfait</button>
     </div>
     <div class="card-datatable table-responsive">
         <table class="datatables-plans table table-striped">
-            <thead class="table-light"><tr><th>Nom</th><th>Prix Mensuel</th><th>Statut</th><th>Actions</th></tr></thead>
+            <thead class="table-light"><tr><th>Nom</th><th>Prix Mensuel</th><th>Essai</th><th>Statut</th><th>Actions</th></tr></thead>
         </table>
     </div>
 </div>
@@ -46,7 +49,7 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Prix Mensuel (FCFA)</label><input type="number" name="price_monthly" class="form-control" required></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Prix Annuel (FCFA)</label><input type="number" name="price_annually" class="form-control" required></div>
                     </div>
-                    
+
                     <hr>
                     <h6 class="mb-3">Capacités et fonctionnalités</h6>
                     <div class="row">
@@ -60,9 +63,30 @@
                         <div class="col-md-4 mb-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="features[sales_page]" value="1" id="sales_page"><label class="form-check-label" for="sales_page">Page de vente publique</label></div></div>
                         <div class="col-md-4 mb-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="features[advanced_reports]" value="1" id="advanced_reports"><label class="form-check-label" for="advanced_reports">Rapports avancés</label></div></div>
                     </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3"><label class="form-label">Niveau de support</label><select name="features[support_level]" class="form-select"><option value="Standard">Standard</option><option value="Prioritaire">Prioritaire</option></select></div>
                         <div class="col-md-6 mb-3 d-flex align-items-end"><div class="form-check form-switch mb-2"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="is_active" checked><label class="form-check-label" for="is_active">Activer ce forfait</label></div></div>
+                    </div>
+
+                    <div class="border rounded p-3 bg-light-subtle">
+                        <h6 class="mb-2">Période d'essai (nouveaux inscrits)</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="trial_enabled" value="1" id="trial_enabled">
+                                    <label class="form-check-label" for="trial_enabled">Activer l'essai sur ce plan</label>
+                                </div>
+                                <small class="text-muted d-block mt-1">Un utilisateur ne peut bénéficier de l'essai qu'une seule fois.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Durée de l'essai</label>
+                                <select class="form-select" name="trial_days" id="trial_days">
+                                    <option value="7">7 jours</option>
+                                    <option value="14">14 jours</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -74,4 +98,3 @@
     </div>
 </div>
 @endsection
-                    

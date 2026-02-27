@@ -1,9 +1,10 @@
 {
   "menu": [
     {
-      "url": "/",
+      "url": "/dashboard",
       "name": "Tableau De Bord",
       "icon": "menu-icon icon-base ti tabler-dashboard",
+      "icon_color": "text-primary", 
       "slug": "pages-home"
     },
     {
@@ -12,17 +13,20 @@
     {
       "name": "Hotspot",
       "icon": "menu-icon icon-base ti tabler-wifi",
+      "icon_color": "text-primary", 
       "slug": "gestion-hotspot",
       "submenu": [
         {
           "url": "/profiles",
-      "icon": "menu-icon icon-base ti tabler-users-group",
+          "icon": "menu-icon icon-base ti tabler-users-group",
+          "icon_color": "text-primary", 
           "name": "Mes Profils",
           "slug": "user.profiles.index"
         },
         {
           "url": "/vouchers",
-      "icon": "menu-icon icon-base ti tabler-ticket",
+          "icon": "menu-icon icon-base ti tabler-ticket",
+          "icon_color": "text-primary", 
           "name": "Gérer Vouchers",
           "slug": "user.vouchers.index"
         }
@@ -32,23 +36,27 @@
       "name": "PPPoE",
       "badge": "Bientôt",
       "icon": "menu-icon icon-base ti tabler-brand-tidal",
+      "icon_color": "text-primary", 
       "slug": "gestion-hotspot",
       "submenu": [
             {
               "url": "#",
               "icon": "menu-icon icon-base ti tabler-topology-bus",
+              "icon_color": "text-primary", 
               "name": "Pool PPPoE",
               "slug": "#"
             },
             {
               "url": "#",
               "icon": "menu-icon icon-base ti tabler-users-group",
+              "icon_color": "text-primary", 
               "name": "Profils",
               "slug": "#"
             },
             {
               "url": "#",
               "icon": "menu-icon icon-base ti tabler-users-group",
+              "icon_color": "text-primary", 
               "name": "Compte PPPoE",
               "slug": "#"
             }
@@ -61,15 +69,16 @@
       "name": "Mes Routeurs",
       "url": "/routers",
       "icon": "menu-icon icon-base ti tabler-router",
+      "icon_color": "text-primary", 
       "slug": "user.routers.index"
     },
     {
-      "menuHeader": "Service VPN",
-      "icon": "menu-icon icon-base ti tabler-shield-lock"
+      "menuHeader": "Service VPN"
     },
     {
       "url": "/vpn-accounts",
       "icon": "menu-icon icon-base ti tabler-brand-openvpn",
+      "icon_color": "text-primary", 
       "name": "Comptes VPN",
       "slug": "user.vpn-accounts.index"
     },
@@ -79,6 +88,7 @@
     {
       "url": "/sales-page",
       "icon": "menu-icon icon-base ti tabler-layout",
+      "icon_color": "text-primary", 
       "name": "Page de vente",
       "slug": "user.sales-page.edit"
     },
@@ -86,11 +96,13 @@
       "url": "/wallet",
       "name": "Mon Portefeuille",
       "icon": "menu-icon icon-base ti tabler-wallet",
+      "icon_color": "text-primary", 
       "slug": "user.wallet.index"
     },
     {
       "url": "/reports",
       "icon": "menu-icon icon-base ti tabler-chart-bar",
+      "icon_color": "text-primary", 
       "name": "Reporting & Exports",
       "slug": "user.reports.index"
     },
@@ -98,6 +110,7 @@
       "url": "/payment-gateways",
       "name": "Moyens de Paiement",
       "icon": "menu-icon icon-base ti tabler-credit-card",
+      "icon_color": "text-primary", 
       "slug": "user.payment-gateways.index",
       "roles": ["Super-admin", "Admin"]
     },
@@ -105,6 +118,7 @@
       "url": "/plans",
       "name": "Abonnement",
       "icon": "menu-icon icon-base ti tabler-diamond",
+      "icon_color": "text-primary", 
       "slug": "user.plans.index"
     },
     {
@@ -115,12 +129,14 @@
       "url": "/admin/withdrawals",
       "name": "Demandes de Retrait",
       "icon": "menu-icon icon-base ti tabler-transfer-out",
+      "icon_color": "text-primary", 
       "slug": "admin.withdrawals.index",
       "roles": ["Super-admin", "Admin"]
     },
     {
       "name": "Gestion Finances",
       "icon": "menu-icon icon-base ti tabler-credit-card",
+      "icon_color": "text-primary", 
       "slug": "gestion-finances",
       "roles": ["Super-admin", "Admin"],
       "submenu": [
@@ -128,6 +144,7 @@
               "url": "/admin/plans",
               "name": "Gestion des Forfaits",
               "icon": "menu-icon icon-base ti tabler-packages",
+              "icon_color": "text-primary", 
               "slug": "admin.plans.index",
               "roles": ["Super-admin", "Admin"]
             },
@@ -135,12 +152,14 @@
               "url": "/admin/coupons",
               "name": "Bons de Réduction",
               "icon": "menu-icon icon-base ti tabler-ticket",
+              "icon_color": "text-primary", 
               "slug": "admin.coupons.index"
             }
         ]
     },
     {"name": "Gestion Serveurs",
       "icon": "menu-icon icon-base ti tabler-server-2",
+      "icon_color": "text-primary", 
       "slug": "gestion-finances",
       "roles": ["Super-admin", "Admin"],
       "submenu": [
@@ -148,6 +167,7 @@
               "url": "/admin/vpn-servers",
               "name": "Serveurs VPN",
               "icon": "menu-icon icon-base ti tabler-server",
+              "icon_color": "text-primary", 
               "slug": "admin.vpn-servers.index",
               "roles": ["Super-admin", "Admin"]
             },
@@ -155,12 +175,14 @@
               "url": "/admin/radius-servers",
               "name": "Serveurs RADIUS",
               "icon": "menu-icon icon-base ti tabler-server-2",
+              "icon_color": "text-primary", 
               "slug": "admin.radius-servers.index"
             },
             {
                 "url": "/admin/radius-tester",
                 "name": "Testeur RADIUS",
                 "icon": "menu-icon icon-base ti tabler-shield-check",
+                "icon_color": "text-primary", 
                 "slug": "admin.radius-tester.index"
             }
         ]

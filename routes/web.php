@@ -9,6 +9,7 @@ use App\Http\Controllers\User\WalletController;
 use App\Http\Controllers\User\PaymentGatewayController;
 use App\Http\Controllers\User\VpnAccountController;
 use App\Http\Controllers\User\PricingController;
+use App\Http\Controllers\User\PlanPaymentController;
 use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\User\UserProfileController;
 use App\Http\Controllers\User\SalePageController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\LandingController;
 // Page d'accueil
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::get('/dashboard/stats', [DashboardController::class, 'getStats'])->middleware('auth')->name('dashboard.stats');
 
 // Changement de langue
 Route::get('/lang/{locale}', [LanguageController::class, 'swap']);
@@ -42,8 +44,8 @@ Route::get('vpn/scripts/{account}/core', [VpnAccountController::class, 'scriptCo
 // Génère une commande MikroTik (loader) à coller dans le terminal (JSON)
 Route::get('routers/{router}/radius/install-command', [RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
 // (Optionnel mais recommandé) loader/core text/plain si tu veux aussi supporter /tool fetch
-Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader');
 // Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader')->middleware('signed');
+Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader');
 Route::get('routers/scripts/{router}/core', [RouterController::class, 'radiusScriptCore'])->name('routers.radius.script.core');
 
 // Routes Utilisateur
@@ -76,6 +78,9 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::resource('vpn-accounts', VpnAccountController::class);
     Route::get('plans', [PricingController::class, 'index'])->name('plans.index');
     Route::get('payment/{plan}/{duration}', [PricingController::class, 'payment'])->name('payment');
+    Route::post('payment/{plan}/{duration}/checkout', [PricingController::class, 'checkout'])->name('payment.checkout');
+    Route::get('plans/payment/callback', [PlanPaymentController::class, 'callback'])->name('plans.payment-callback');
+    Route::post('plans/payment/verify', [PlanPaymentController::class, 'verifyPayment'])->name('plans.payment-verify');
     Route::post('apply-coupon', [PricingController::class, 'applyCoupon'])->name('apply-coupon');
     
     Route::get('profile/{tab?}', [UserProfileController::class, 'index'])->name('profile');
@@ -131,7 +136,8 @@ Route::prefix('payment')->name('public.payment.')->group(function () {
     Route::get('/callback', [PaymentController::class, 'callback'])->name('callback');
     Route::post('/webhook', [PaymentController::class, 'webhook'])->name('webhook');
 });
-Route::post('/withdraw/callback', [WithdrawalController::class, 'moneyfusionWebhook'])->name('api.withdrawals.moneyfusion.webhook');
+
+Route::post('plans/payment/webhook', [PlanPaymentController::class, 'webhook'])->name('user.plans.payment-webhook');
 
 // --- Route pour le Webhook FreeRADIUS ---
 // Cette route doit être accessible publiquement par le serveur RADIUS.

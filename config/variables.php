@@ -4,10 +4,10 @@ return [
   "creatorName" => "PhenixSPOT",
   "creatorUrl" => "https://phenixspot.com",
   "templateName" => "PhenixSPOT",
-  "templateSuffix" => "Bootstrap Admin Template",
+  "templateSuffix" => "Votre solution professionnelle de gestion Hotspot & PPPoE",
   "templateVersion" => "3.0.0",
   "templateFree" => false,
-  "templateDescription" => "Start your development with a Dashboard for Bootstrap 5",
-  "templateKeyword" => "dashboard, bootstrap 5 dashboard, bootstrap 5 design, bootstrap 5",
+  "templateDescription" => "Votre solution professionnelle de gestion Hotspot & PPPoE",
+  "templateKeyword" => "Hotspot, Wi-Fi Zone, Radius, PPPoE, PhenixSPOT, MikroTik, VPN",
   "generator" => "",
 ];

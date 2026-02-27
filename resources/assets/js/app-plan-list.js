@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
             columns: [
                 { data: 'name', name: 'name' },
                 { data: 'price', name: 'price_monthly' },
+                { data: 'trial', name: 'trial_enabled', orderable: false, searchable: false },
                 { data: 'status', name: 'status' },
                 { data: 'action', name: 'action', orderable: false, searchable: false }
             ],
@@ -23,19 +24,31 @@ document.addEventListener('DOMContentLoaded', function() {
         const addForm = addModal.querySelector('form');
         const modalTitle = addModal.querySelector('.modal-title');
         const planIdInput = addModal.querySelector('#plan_id');
+        const trialEnabledInput = addModal.querySelector('[name="trial_enabled"]');
+        const trialDaysInput = addModal.querySelector('[name="trial_days"]');
+
+        const syncTrialField = () => {
+            if (!trialEnabledInput || !trialDaysInput) return;
+            trialDaysInput.disabled = !trialEnabledInput.checked;
+        };
+
+        trialEnabledInput?.addEventListener('change', syncTrialField);
 
         $('#add-new-plan-btn').on('click', function() {
             addForm.reset();
             planIdInput.value = '';
             $(addForm).find('input[name="_method"]').remove();
             modalTitle.innerHTML = 'Ajouter un Forfait';
+            trialEnabledInput.checked = false;
+            trialDaysInput.value = '7';
+            syncTrialField();
             new bootstrap.Modal(addModal).show();
         });
 
         $(addForm).on('submit', function(e) {
             e.preventDefault();
             let url = planIdInput.value ? '/admin/plans/' + planIdInput.value : '/admin/plans';
-            let method = planIdInput.value ? 'POST' : 'POST';
+            let method = 'POST';
             let formData = $(this).serializeArray();
             if (planIdInput.value) {
                 formData.push({name: '_method', value: 'PUT'});
@@ -48,7 +61,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     bootstrap.Modal.getInstance(addModal).hide();
                     Swal.fire({ icon: 'success', title: 'Succès!', text: response.success, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
                 },
-                error: function(err) { Swal.fire({ icon: 'error', title: 'Erreur!', text: 'Une erreur est survenue.' }); }
+                error: function(err) {
+                    const msg = err?.responseJSON?.message || 'Une erreur est survenue.';
+                    Swal.fire({ icon: 'error', title: 'Erreur!', text: msg });
+                }
             });
         });
 
@@ -66,10 +82,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(addForm).find('[name="features[vpn_accounts]"]').val(data.features.vpn_accounts);
                 $(addForm).find('[name="features[active_users]"]').val(data.features.active_users || data.features.users || '');
                 $(addForm).find('[name="features[pppoe]"]').prop('checked', !!data.features.pppoe);
-                $(addForm).find('[name="features[sales_page]"]').prop('checked', data.features.sales_page);
+                $(addForm).find('[name="features[sales_page]"]').prop('checked', !!data.features.sales_page);
                 $(addForm).find('[name="features[advanced_reports]"]').prop('checked', !!data.features.advanced_reports);
                 $(addForm).find('[name="features[support_level]"]').val(data.features.support_level || 'Standard');
                 $(addForm).find('[name="is_active"]').prop('checked', data.is_active);
+                $(addForm).find('[name="trial_enabled"]').prop('checked', !!data.trial_enabled);
+                $(addForm).find('[name="trial_days"]').val(String(data.trial_days || 7));
+                syncTrialField();
                 new bootstrap.Modal(addModal).show();
             });
         });
@@ -91,5 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+
+        syncTrialField();
     }
 });

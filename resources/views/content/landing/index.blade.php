@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-  <title>{{ config('variables.templateName') }} | Système de Gestion Hotspot • PPPoE • VPN</title>
+  <title>{{ config('variables.templateName') }} | {{ config('variables.templateSuffix') }}</title>
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="{{ asset('assets/img/favicon/favicon.ico') }}">
@@ -740,7 +740,7 @@
           </h1>
 
           <p class="hero-sub mb-4">
-            Un Système pensé pour les WISP, ISP locaux, cybercafés et intégrateurs : gestion Hotspot/PPPoE, AAA RADIUS, vouchers, portail captif, paiements Mobile Money et reporting.
+            Une solution professionnelle pensée pour les WISP, ISP locaux, cybercafés et intégrateurs : gestion Hotspot/PPPoE, AAA RADIUS, vouchers, portail captif, paiements Mobile Money et reporting.
           </p>
 
           <div class="d-flex flex-column flex-sm-row gap-3">
@@ -1383,7 +1383,7 @@
             <span class="fw-bold fs-4 ms-2">{{ $appName }}</span>
           </a>
           <p class="mb-4" style="max-width: 420px;">
-            Système de gestion Hotspot, PPPoE : vouchers, paiements, wallet, reporting et croissance maîtrisée.
+        {{ config('variables.templateSuffix') }} : vouchers, paiements, wallet, reporting et croissance maîtrisée.
           </p>
           <div class="d-flex gap-3">
             <a href="#" class="text-white opacity-50 hover-opacity-100 fs-4" aria-label="Facebook"><i class="ti ti-brand-facebook"></i></a>
