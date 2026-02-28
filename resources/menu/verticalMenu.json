@@ -100,7 +100,8 @@
       "slug": "user.wallet.index"
     },
     {
-      "url": "/reports",
+      "url": "#",
+      "badge": "Bientôt",
       "icon": "menu-icon icon-base ti tabler-chart-bar",
       "icon_color": "text-primary", 
       "name": "Reporting & Exports",

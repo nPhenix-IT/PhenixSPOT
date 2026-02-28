@@ -94,7 +94,7 @@ class RadiusWebhookController extends Controller
             ->with(['profile'])
             ->first();
 
-        // ERREUR : Code inexistant ou désactivé
+        // 1. ERREUR : Code inexistant ou désactivé
         if (!$voucher || !$voucher->is_active) {
             return response()->json([
                 'control:Auth-Type' => 'Reject',
@@ -103,6 +103,35 @@ class RadiusWebhookController extends Controller
         }
 
         $profile = $voucher->profile;
+
+        // 2. ERREUR : VALIDITÉ CALENDAIRE (On vérifie avant le reste)
+        if ($voucher->status === 'used' && $voucher->used_at && $profile->validity_period > 0) {
+            $expirationDate = Carbon::parse($voucher->used_at)->addSeconds($profile->validity_period);
+            if (now()->greaterThan($expirationDate)) {
+                return response()->json([
+                    'control:Auth-Type' => 'Reject',
+                    'reply:Reply-Message' => 'Code expiré. Achetez-en un nouveau pour continuer !'
+                ], 200);
+            }
+        }
+
+        // --- VÉRIFICATION : NOMBRE DE SESSIONS SIMULTANÉES ---
+        if ($profile && $profile->device_limit > 0) {
+            // On compte les sessions qui n'ont pas de 'acctstoptime'
+            // Optionnel : On filtre sur les sessions des dernières 24h pour ignorer les vieux bugs de déco
+            $activeSessionsCount = DB::table('radacct')
+                ->where('username', $username)
+                ->whereNull('acctstoptime')
+                ->where('acctstarttime', '>', now()->subDay())
+                ->count();
+
+            if ($activeSessionsCount >= $profile->device_limit) {
+                return response()->json([
+                    'control:Auth-Type' => 'Reject',
+                    'reply:Reply-Message' => "Limite d'appareils atteinte ({$profile->device_limit} max). Deconnectez l'autre appareil !"
+                ], 200);
+            }
+        }
 
         $usage = DB::table('radacct')
             ->where('username', $username)
@@ -115,18 +144,7 @@ class RadiusWebhookController extends Controller
         $totalDataUsed = (int) ($usage->total_data ?? 0);
         $totalTimeUsed = (int) ($usage->total_time ?? 0);
 
-        // 1. ERREUR : VALIDITÉ (Expiration calendaire)
-        if ($voucher->status === 'used' && $voucher->used_at && $profile->validity_period > 0) {
-            $expirationDate = Carbon::parse($voucher->used_at)->addSeconds($profile->validity_period);
-            if (now()->greaterThan($expirationDate)) {
-                return response()->json([
-                    'control:Auth-Type' => 'Reject',
-                    'reply:Reply-Message' => 'Code expiré. Achetez-en un nouveau pour continuer !'
-                ], 200);
-            }
-        }
-
-        // 2. ERREUR : QUOTA DATA (Volume de données)
+        // 3. ERREUR : QUOTA DATA
         if ($profile->data_limit > 0 && $totalDataUsed >= $profile->data_limit) {
             return response()->json([
                 'control:Auth-Type' => 'Reject',
@@ -134,7 +152,7 @@ class RadiusWebhookController extends Controller
             ], 200);
         }
 
-        // 3. ERREUR : LIMITE TEMPS (Durée de connexion)
+        // 4. ERREUR : LIMITE TEMPS
         if ($profile->session_timeout > 0 && $totalTimeUsed >= $profile->session_timeout) {
             return response()->json([
                 'control:Auth-Type' => 'Reject',
@@ -146,31 +164,30 @@ class RadiusWebhookController extends Controller
         $response = [
             'control:Auth-Type' => 'Accept',
             'reply:Mikrotik-Rate-Limit' => $profile->rate_limit ?? '10M/10M',
-            // --- AJOUTS ATTRIBUTS UTILES ---
-            'reply:Acct-Interim-Interval' => 60, // Mise à jour des stats toutes les 60s
-            'reply:Idle-Timeout' => 300,        // Déconnexion après 5min d'inactivité
+            
+            // CONFIGURATION ACCOUNTING
+            'reply:Acct-Interim-Interval' => 60, 
+            'reply:Idle-Timeout' => 300,        
         ];
 
-        // Calcul du temps restant pour Session-Timeout
+        // Session-Timeout dynamique
         if ($profile->session_timeout > 0) {
             $remainingTime = (int) max(0, $profile->session_timeout - $totalTimeUsed);
             $response['reply:Session-Timeout'] = $remainingTime;
         } else {
-            $response['reply:Session-Timeout'] = 604800; // 1 semaine par défaut si illimité
+            $response['reply:Session-Timeout'] = 604800; // 1 semaine
         }
 
-        // Calcul de la Data restante pour MikroTik
+        // Mikrotik-Total-Limit
         if ($profile->data_limit > 0) {
             $remainingData = (int) ($profile->data_limit - $totalDataUsed);
             $response['reply:Mikrotik-Total-Limit'] = $remainingData;
         }
 
-        // Gestion de l'expiration calendaire stricte (WISPr)
+        // WISPr & Message d'accueil
         if ($voucher->used_at && $profile->validity_period > 0) {
             $expiration = Carbon::parse($voucher->used_at)->addSeconds($profile->validity_period);
             $response['reply:WISPr-Session-Terminate-Time'] = $expiration->toIso8601String();
-            
-            // Message d'information sur la date d'expiration pour la page status.html
             $response['reply:Reply-Message'] = "Expire le: " . $expiration->format('d/m H:i');
         } else {
             $response['reply:Reply-Message'] = "Bienvenue ! Connexion etablie.";

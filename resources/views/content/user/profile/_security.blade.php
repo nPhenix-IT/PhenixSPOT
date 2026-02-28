@@ -15,9 +15,9 @@
             <li class="nav-item">
               <a class="nav-link {{ $tab == 'notifications' ? 'active' : '' }}" href="{{ route('user.profile', ['tab' => 'notifications']) }}"><i class="icon-base ti tabler-bell icon-sm me-1_5"></i> Notifications</a>
             </li>
-            <li class="nav-item">
-              <a class="nav-link {{ $tab == 'connections' ? 'active' : '' }}" href="{{ route('user.profile', ['tab' => 'connections']) }}"><i class="icon-base ti tabler-link icon-sm me-1_5"></i> Connexions</a>
-            </li>
+            <!--<li class="nav-item">-->
+            <!--  <a class="nav-link {{ $tab == 'connections' ? 'active' : '' }}" href="{{ route('user.profile', ['tab' => 'connections']) }}"><i class="icon-base ti tabler-link icon-sm me-1_5"></i> Connexions</a>-->
+            <!--</li>-->
           </ul>
         </div>
         <div class="card mb-6">

@@ -54,9 +54,9 @@
         <li class="nav-item">
           <a class="nav-link {{ $tab == 'notifications' ? 'active' : '' }}" href="{{ route('user.profile', 'notifications') }}"><i class="icon-base ti ti-bell icon-sm me-1_5"></i> Notifications</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link {{ $tab == 'connections' ? 'active' : '' }}" href="{{ route('user.profile', 'connections') }}"><i class="icon-base ti ti-link icon-sm me-1_5"></i> Connexions</a>
-        </li>
+        <!--<li class="nav-item">-->
+        <!--  <a class="nav-link {{ $tab == 'connections' ? 'active' : '' }}" href="{{ route('user.profile', 'connections') }}"><i class="icon-base ti ti-link icon-sm me-1_5"></i> Connexions</a>-->
+        <!--</li>-->
       </ul>
     </div>
 

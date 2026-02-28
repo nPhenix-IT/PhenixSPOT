@@ -781,7 +781,8 @@ input[type="radio"]:checked + .protocol-card {
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('user.vpn.store') }}" method="POST">
+            <!--<form action="{{ route('user.vpn.store') }}" method="POST">-->
+            <form id="vpnCreateForm" action="{{ route('user.vpn.store') }}" method="POST">
                 @csrf
                 <div class="modal-body p-5 bg-white">
                     <div class="mb-5">
@@ -1152,12 +1153,14 @@ function confirmDelete(accountId) {
 
 document.addEventListener('DOMContentLoaded', function() {
     updatePrice();
+
     @if(session('success')) Toast.fire({
         icon: 'success',
         title: 'Opération réussie',
         text: "{{ session('success') }}"
     });
     @endif
+
     @if(session('error')) Swal.fire({
         icon: 'error',
         title: 'Erreur système',
@@ -1165,6 +1168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmButtonColor: '#7367f0'
     });
     @endif
+
     @if($errors->any())
     let errs = '<div class="text-start">';
     @foreach($errors->all() as $error) errs += '<div class="mb-1 text-danger small"><i class="ti tabler-x me-1"></i> {{ $error }}</div>';
@@ -1178,5 +1182,96 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     new bootstrap.Modal(document.getElementById('createVpnModal')).show();
     @endif
+
+    // ✅ AJOUT: Intercepter le submit "ACTIVER LE TUNNEL" pour éviter page JSON
+    try {
+        const storeUrl = @json(route('user.vpn.store'));
+
+        // On récupère le formulaire par son action (aucune modif HTML obligatoire)
+        const vpnForm = document.querySelector(`form[action="${storeUrl}"]`);
+
+        if (vpnForm) {
+            vpnForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                // Loading
+                Swal.fire({
+                    title: 'Activation en cours...',
+                    text: 'Création du tunnel VPN, veuillez patienter.',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const formData = new FormData(vpnForm);
+
+                try {
+                    const res = await fetch(storeUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: formData
+                    });
+
+                    const data = await res.json().catch(() => ({}));
+
+                    // Erreurs (validation / logique)
+                    if (!res.ok || data.ok === false) {
+                        if (data && data.errors) {
+                            const firstKey = Object.keys(data.errors)[0];
+                            const firstMsg = firstKey ? data.errors[firstKey][0] : 'Veuillez vérifier le formulaire.';
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Validation',
+                                text: firstMsg,
+                                confirmButtonColor: '#7367f0'
+                            });
+                            return;
+                        }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erreur système',
+                            text: (data && data.message) ? data.message : 'Une erreur est survenue.',
+                            confirmButtonColor: '#7367f0'
+                        });
+                        return;
+                    }
+
+                    // ✅ Succès: Toast + fermer modal + refresh page
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Opération réussie',
+                        text: data.message || 'Tunnel VPN créé'
+                    });
+
+                    const modalEl = document.getElementById('createVpnModal');
+                    if (modalEl && window.bootstrap) {
+                        const instance = window.bootstrap.Modal.getInstance(modalEl) || new window.bootstrap.Modal(modalEl);
+                        instance.hide();
+                    }
+
+                    // Reset du form (optionnel)
+                    vpnForm.reset();
+                    updatePrice();
+
+                    // Recharge la page pour afficher le nouveau tunnel
+                    window.location.reload();
+
+                } catch (err) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erreur réseau',
+                        text: 'Impossible de contacter le serveur.',
+                        confirmButtonColor: '#7367f0'
+                    });
+                }
+            });
+        }
+    } catch (e) {
+        // Si route() n'est pas dispo pour une raison X, on ne casse rien
+    }
 });
 </script>

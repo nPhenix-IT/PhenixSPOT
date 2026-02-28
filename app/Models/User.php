@@ -67,7 +67,6 @@ class User extends Authenticatable
     
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'mikrotik_password' => 'encrypted', // Chiffrement automatique
         'trial_used_at' => 'datetime',
         'password' => 'hashed',
         'mikrotik_password' => 'encrypted',

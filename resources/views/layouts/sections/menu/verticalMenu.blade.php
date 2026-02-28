@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
     </a>
 
     <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
-      <i class="ti menu-toggle-icon d-none d-xl-block ti-sm align-middle"></i>
+      <i class="ti menu-toggle-icon icon_color d-none d-xl-block ti-sm align-middle"></i>
       <i class="ti ti-x d-block d-xl-none ti-sm align-middle"></i>
     </a>
   </div>
@@ -90,16 +90,60 @@ use Illuminate\Support\Str;
     @endif
     @endforeach
   </ul>
+  
   <div class="menu-divider mt-0"></div>
-  <div class="menu-block my-2 d-flex align-items-center">
-    <div class="avatar avatar-md avatar-online me-2"><img alt="Avatar" class="rounded-circle shadow" src="{{ Auth::user() ? Auth::user()->profile_photo_url : asset('assets/img/avatars/1.png') }}"></div>
-    <h5 class="menu-text mt-4 mb-1">
-    @if (Auth::check())
-      {{ Auth::user()->name }}
-      @else
-      John Doe
-    @endif
-    </h5>
-  </div>
+    <div class="menu-block my-2 d-flex align-items-center">
+      {{-- Avatar (reste visible même menu réduit) --}}
+      <div class="avatar avatar-md avatar-online me-2">
+        <img
+          alt="Avatar"
+          class="rounded-circle shadow"
+          src="{{ Auth::user() ? Auth::user()->profile_photo_url : asset('assets/img/avatars/1.png') }}"
+        >
+      </div>
+    
+      {{-- Texte (sera masqué automatiquement quand menu réduit grâce à menu-text) --}}
+      <div class="menu-text d-flex flex-column">
+        <h5 class="mt-4 mb-1">
+            {{ Auth::user()->name }}
+        </h5>
+    
+        @if (Auth::check())
+          @php
+            // Charge relations si pas encore chargées
+            $u = Auth::user()->loadMissing('subscription.plan');
+    
+            // Abonnement actif en priorité, sinon dernier abonnement
+            $activeSub = $u->subscription()
+              ->with('plan')
+              ->where('status', 'active')
+              ->first() ?? $u->subscription;
+    
+            $planName = ($activeSub && $activeSub->plan) ? $activeSub->plan->name : null;
+          @endphp
+    
+          <div class="text-muted small">
+            {{ $planName ?? 'Aucun forfait actif' }}
+          </div>
+        @endif
+      </div>
+    </div>
+    
+    <style>
+      /* Centrer l’avatar quand menu est réduit (selon classe de ton thème) */
+      :is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block,
+      :is(body, html, .layout-wrapper, .layout-container).menu-collapsed #layout-menu .menu-block,
+      #layout-menu.layout-menu-collapsed .menu-block,
+      #layout-menu.menu-collapsed .menu-block {
+        justify-content: center;
+      }
+    
+      :is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block .avatar,
+      :is(body, html, .layout-wrapper, .layout-container).menu-collapsed #layout-menu .menu-block .avatar,
+      #layout-menu.layout-menu-collapsed .menu-block .avatar,
+      #layout-menu.menu-collapsed .menu-block .avatar {
+        margin-right: 0 !important;
+      }
+    </style>
 
 </aside>

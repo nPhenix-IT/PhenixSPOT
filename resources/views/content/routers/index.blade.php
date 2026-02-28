@@ -89,14 +89,82 @@
           </div>
         </div>
 
-        <div class="mb-4 border-top pt-3">
-          <h6 class="mb-3 text-primary">Configuration API</h6>
-          <div class="mb-3"><label class="form-label">API Adresse</label><input type="text" class="form-control" name="api_address" placeholder="192.168.88.1 ou vpn.phenixspot.com" /></div>
-          <div class="mb-3"><label class="form-label">API Port</label><input type="number" class="form-control" name="api_port" placeholder="8728" min="1" max="65535" /></div>
-          <div class="mb-3"><label class="form-label">API User</label><input type="text" class="form-control" name="api_user" placeholder="admin" /></div>
-          <div class="mb-3"><label class="form-label">API Password</label><input type="text" class="form-control" name="api_password" placeholder="admin" /></div>
-          <button type="button" class="btn btn-outline-primary btn-sm" id="test-router-api-btn"><i class="icon-base ti tabler-plug-connected me-1"></i> Test rapide</button>
+        <div class="accordion mb-4" id="routerApiAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="headingApiConfig">
+              <button class="accordion-button {{ old('api_address', $router->api_address ?? null) || old('api_port', $router->api_port ?? null) || old('api_user', $router->api_user ?? null) || old('api_password', $router->api_password ?? null) ? '' : 'collapsed' }}" type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapseApiConfig"
+                      aria-expanded="false"
+                      aria-controls="collapseApiConfig">
+                <span class="fw-semibold">Configuration API</span>
+                <span class="text-muted ms-2 bg-label-primary">(optionnel)</span>
+              </button>
+            </h2>
+        
+            <div id="collapseApiConfig"
+                 class="accordion-collapse collapse {{ old('api_address', $router->api_address ?? null) || old('api_port', $router->api_port ?? null) || old('api_user', $router->api_user ?? null) || old('api_password', $router->api_password ?? null) ? 'show' : '' }}"
+                 aria-labelledby="headingApiConfig"
+                 data-bs-parent="#routerApiAccordion">
+              <div class="accordion-body">
+        
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">API Adresse</label>
+                    <input type="text"
+                           class="form-control @error('api_address') is-invalid @enderror"
+                           name="api_address"
+                           value="{{ old('api_address', $router->api_address ?? '') }}"
+                           placeholder="192.168.88.1 ou vpn.phenixspot.com">
+                    @error('api_address')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                  </div>
+        
+                  <div class="col-md-6">
+                    <label class="form-label">API Port</label>
+                    <input type="number"
+                           class="form-control @error('api_port') is-invalid @enderror"
+                           name="api_port"
+                           value="{{ old('api_port', $router->api_port ?? '') }}"
+                           placeholder="8728"
+                           min="1" max="65535">
+                    @error('api_port')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                  </div>
+        
+                  <div class="col-md-6">
+                    <label class="form-label">API User</label>
+                    <input type="text"
+                           class="form-control @error('api_user') is-invalid @enderror"
+                           name="api_user"
+                           value="{{ old('api_user', $router->api_user ?? '') }}"
+                           placeholder="admin">
+                    @error('api_user')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                  </div>
+        
+                  <div class="col-md-6">
+                    <label class="form-label">API Password</label>
+                    <input type="text"
+                           class="form-control @error('api_password') is-invalid @enderror"
+                           name="api_password"
+                           value="{{ old('api_password', $router->api_password ?? '') }}"
+                           placeholder="••••••••">
+                    @error('api_password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                  </div>
+                </div>
+        
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="test-router-api-btn">
+                    <i class="icon-base ti tabler-plug-connected me-1"></i> Test rapide
+                  </button>
+                  <small class="text-muted align-self-center">
+                    Renseigne l’API uniquement si tu veux le test & l’automatisation.
+                  </small>
+                </div>
+        
+              </div>
+            </div>
+          </div>
         </div>
+        
         <div class="mb-3"><label class="form-label">Description</label><textarea name="description" class="form-control"></textarea></div>
         <button type="submit" class="btn btn-primary me-sm-3 me-1">Enregistrer</button>
         <button type="reset" class="btn btn-label-secondary" data-bs-dismiss="offcanvas">Annuler</button>

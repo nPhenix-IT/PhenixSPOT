@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 use Laravel\Jetstream\Jetstream;
+use GeoIp2\Database\Reader;
+use Illuminate\Support\Facades\File;
 
 class CreateNewUser implements CreatesNewUsers
 {
@@ -23,23 +25,60 @@ class CreateNewUser implements CreatesNewUsers
      *
      * @param  array<string, string>  $input
      */
+     
     public function create(array $input): User
     {
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'phone_number' => ['required', 'string', 'max:30'],
-            'country_code' => ['required', 'string', 'max:8'],
+            'country_code' => ['nullable', 'string', 'max:8'], // backend override
             'password' => $this->passwordRules(),
             'terms' => Jetstream::hasTermsAndPrivacyPolicyFeature() ? ['accepted', 'required'] : '',
         ])->validate();
-
-        return DB::transaction(function () use ($input) {
+    
+        // Nettoyage phone
+        $phone = preg_replace('/\s+/', '', (string) $input['phone_number']);
+    
+        // ----------- DETECTION GEOIP OFFICIELLE MAXMIND -----------
+        $countryCode = 'CI'; // fallback
+    
+        try {
+            $databasePath = storage_path('app/geoip/GeoLite2-Country.mmdb');
+    
+            if (File::exists($databasePath)) {
+                $reader = new Reader($databasePath);
+    
+                $ip = request()->ip();
+    
+                // Si local/dev
+                if ($ip === '127.0.0.1' || $ip === '::1') {
+                    $ip = '8.8.8.8'; // IP de test
+                }
+    
+                $record = $reader->country($ip);
+    
+                $isoCode = strtoupper($record->country->isoCode ?? '');
+    
+                if (strlen($isoCode) === 2) {
+                    $countryCode = $isoCode;
+                }
+    
+                $reader->close();
+            }
+        } catch (\Throwable $e) {
+            // Si erreur -> fallback CI
+            $countryCode = 'CI';
+        }
+    
+        // -----------------------------------------------------------
+    
+        return DB::transaction(function () use ($input, $countryCode, $phone) {
             return tap(User::create([
                 'name' => $input['name'],
                 'email' => $input['email'],
-                'phone_number' => $input['phone_number'],
-                'country_code' => $input['country_code'],
+                'phone_number' => $phone,
+                'country_code' => $countryCode, // ISO2 fiable
                 'password' => Hash::make($input['password']),
                 'slug' => $this->generateSlug($input['name']),
             ]), function (User $user) {

@@ -157,7 +157,18 @@ use Illuminate\Support\Str;
            return back()->with('error', "Solde insuffisant ({$totalCharge} FCFA requis). Vous pouvez choisir MoneyFusion.");
        }
 
-       return $this->createVpnAccount($request, $user, $isSupplementary, $totalCharge, true);
+    //   return $this->createVpnAccount($request, $user, $isSupplementary, $totalCharge, true);
+    $result = $this->createVpnAccount($request, $user, $isSupplementary, $totalCharge, true);
+
+    // ✅ Si appel AJAX/Fetch => JSON (pour SweetAlert/Toast)
+    if ($request->expectsJson() || $request->ajax()) {
+        return response()->json($result, $result['ok'] ? 200 : 422);
+    }
+    
+    // ✅ Sinon (submit normal) => redirect avec message (plus de page JSON)
+    return redirect()
+        ->route('user.vpn.index')
+        ->with($result['ok'] ? 'success' : 'error', $result['message']);
    }
 
    public function moneyfusionCallback(Request $request)

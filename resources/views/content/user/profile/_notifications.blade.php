@@ -15,9 +15,9 @@
         <li class="nav-item">
           <a class="nav-link active" href="javascript:void(0);"><i class="icon-base ti tabler-bell icon-sm me-1_5"></i> Notifications</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{ route('user.profile', ['tab' => 'connections']) }}"><i class="icon-base ti tabler-link icon-sm me-1_5"></i> Connections</a>
-        </li>
+        <!--<li class="nav-item">-->
+        <!--  <a class="nav-link" href="{{ route('user.profile', ['tab' => 'connections']) }}"><i class="icon-base ti tabler-link icon-sm me-1_5"></i> Connections</a>-->
+        <!--</li>-->
       </ul>
     </div>
     <div class="card">

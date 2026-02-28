@@ -30,6 +30,27 @@
     <ul class="badge-list">
       <li>{{ $profile->rate_limit ?? 'Débit standard' }}</li>
       <li>{{ $profile->data_limit ? round($profile->data_limit / (1024*1024*1024), 2) . ' Go' : 'Données illimitées' }}</li>
+      <li>
+            @php
+                $s = (int) $profile->validity_period;
+                if ($s >= 2592000) {
+                    $val = round($s / 2592000);
+                    $validity = $val . ' mois'; // "mois" est invariant en français
+                } elseif ($s >= 604800) {
+                    $val = round($s / 604800);
+                    $validity = $val . ($val > 1 ? ' semaines' : ' semaine');
+                } elseif ($s >= 86400) {
+                    $val = round($s / 86400);
+                    $validity = $val . ($val > 1 ? ' jours' : ' jour');
+                } elseif ($s >= 3600) {
+                    $val = round($s / 3600);
+                    $validity = $val . ($val > 1 ? ' heures' : ' heure');
+                } else {
+                    $validity = 'Illimitée';
+                }
+            @endphp
+            Validité : {{ $validity }}
+        </li>
     </ul>
     <div class="badge-footer">
       <span class="badge-cta">Acheter</span>

@@ -27,6 +27,31 @@ use App\Http\Controllers\Public\PaymentController;
 use App\Http\Controllers\RadiusWebhookController;
 use App\Http\Controllers\LandingController;
 
+use GeoIp2\Database\Reader;
+use Illuminate\Support\Facades\File;
+
+Route::get('/ip-test', function () {
+    return [
+        'ip' => request()->ip(),
+        'xff' => request()->header('x-forwarded-for'),
+        'cf' => request()->header('cf-connecting-ip'),
+    ];
+});
+Route::get('/geo-test', function () {
+    $db = storage_path('app/geoip/GeoLite2-Country.mmdb');
+    abort_unless(File::exists($db), 500, 'GeoLite2 DB missing');
+
+    $reader = new Reader($db);
+    $record = $reader->country(request()->ip());
+    $reader->close();
+
+    return [
+        'ip' => request()->ip(),
+        'country_iso2' => $record->country->isoCode ?? null,
+        'country_name' => $record->country->name ?? null,
+    ];
+});
+
 // Page d'accueil
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
