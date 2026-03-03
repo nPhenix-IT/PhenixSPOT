@@ -26,7 +26,7 @@ Composer: v2.2 or Above
 
 Clone this repository. Run the following command:
 ```
-git clone https://github.com/nPhenix-IT/RADIUSSPOT.git
+git clone https://github.com/nPhenix-IT/PhenixSPOT.git
 ```
 
 Move to the project directory:
