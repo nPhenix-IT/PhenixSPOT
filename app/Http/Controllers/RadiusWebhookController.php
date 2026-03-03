@@ -6,6 +6,7 @@ use App\Models\Voucher;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Router;
+use App\Models\OnsiteSaleWallet;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -164,10 +165,10 @@ class RadiusWebhookController extends Controller
         $response = [
             'control:Auth-Type' => 'Accept',
             'reply:Mikrotik-Rate-Limit' => $profile->rate_limit ?? '10M/10M',
-            
+
             // CONFIGURATION ACCOUNTING
-            'reply:Acct-Interim-Interval' => 60, 
-            'reply:Idle-Timeout' => 300,        
+            'reply:Acct-Interim-Interval' => 60,
+            'reply:Idle-Timeout' => 300,
         ];
 
         // Session-Timeout dynamique
@@ -231,28 +232,43 @@ class RadiusWebhookController extends Controller
                         'activation_nas_identifier' => $nasIdentifier,
                     ]);
 
-                    if ($voucher->source === 'manual_generation' && 
-                        $voucher->user && 
-                        $voucher->user->wallet && 
-                        $voucher->profile && 
+                    if ($voucher->source === 'manual_generation' &&
+                        $voucher->user &&
+                        $voucher->profile &&
                         $voucher->profile->price > 0) {
-                        
-                        $amount = $voucher->profile->price;
+
+                        $amount = (int) $voucher->profile->price;
                         $user = $voucher->user;
-                        $wallet = $user->wallet;
-                        
-                        $wallet->increment('balance', $amount);
-                        
-                        Transaction::create([
-                            'wallet_id' => $wallet->id,
+
+                        // ✅ Vente physique => onsite_sale_wallet
+                        OnsiteSaleWallet::create([
+                            'user_id' => $user->id,
+                            'voucher_id' => $voucher->id,
+                            'router_id' => $router?->id,
                             'type' => 'credit',
                             'amount' => $amount,
                             'description' => "Vente code physique: {$voucher->code}",
+                            'meta' => [
+                                'voucher_code' => $voucher->code,
+                                'nas_ip' => $nasIp,
+                                'nas_identifier' => $nasIdentifier,
+                            ],
                         ]);
 
-                        $this->sendTelegramNotification($user, $voucher, $wallet->fresh()->balance);
-                        
-                        Log::info("Crédit et Notification Telegram effectués pour: $username");
+                        // ✅ Solde Vente Physique (onsite)
+                        $onsiteBalance = (int) OnsiteSaleWallet::where('user_id', $user->id)
+                            ->where('type', 'credit')
+                            ->sum('amount');
+
+                        // ✅ Solde Vente en ligne (wallet)
+                        $onlineBalance = (int) optional($user->wallet)->balance;
+
+                        $this->sendTelegramNotification($user, $voucher, $onsiteBalance, true, $onlineBalance);
+
+                        Log::info("Crédit ONSITE et Notification Telegram effectués pour: $username", [
+                            'onsite_balance' => $onsiteBalance,
+                            'online_balance' => $onlineBalance,
+                        ]);
                     }
                 });
 
@@ -273,20 +289,32 @@ class RadiusWebhookController extends Controller
 
     /**
      * Envoie la notification de vente au vendeur via Telegram.
+     *
+     * @param bool $isOnsite       true => le 1er solde affiché est celui de la vente physique (onsite_sale_wallet)
+     * @param int|null $onlineBalance solde du wallet (vente en ligne)
      */
-    private function sendTelegramNotification($user, $voucher, $currentBalance)
+    private function sendTelegramNotification($user, $voucher, $currentBalance, bool $isOnsite = false, $onlineBalance = null)
     {
         if ($user->telegram_bot_token && $user->telegram_chat_id) {
             $profile = $voucher->profile;
-            
-            $telegramMessage = "🛒 <b>Nouvelle vente - Ticket Physique</b>\n\n";
-            $telegramMessage .= "Pass: {$profile->name}\n";
-            $telegramMessage .= "Code: <code>{$voucher->code}</code>\n";
-            $telegramMessage .= "Gain: <b>" . number_format($profile->price, 0, ',', ' ') . " FCFA</b>\n\n";
-            
-            if ($currentBalance !== null) {
-                $telegramMessage .= "💰 <b>Nouveau solde: " . number_format($currentBalance, 0, ',', ' ') . " FCFA</b>\n";
+
+            $telegramMessage = "✅ <b>PhenixSpot | Vente confirmée</b>\n";
+            $telegramMessage .= "Type: <b>Ticket Physique</b>\n\n";
+
+            $telegramMessage .= "🎫 Pass: <b>{$profile->name}</b>\n";
+            $telegramMessage .= "🔑 Code: <code>{$voucher->code}</code>\n";
+            $telegramMessage .= "💵 Montant crédité: <b>" . number_format((int) $profile->price, 0, ',', ' ') . " FCFA</b>\n\n";
+
+            // ✅ Total
+            $total = (int) $currentBalance + (int) ($onlineBalance ?? 0);
+
+            // Section soldes (toujours les 2)
+            $telegramMessage .= "📊 <b>Soldes</b>\n";
+            $telegramMessage .= "🏪 Vente Physique: <b>" . number_format((int) $currentBalance, 0, ',', ' ') . " FCFA</b>\n";
+            if ($onlineBalance !== null) {
+                $telegramMessage .= "🌐 Vente en ligne: <b>" . number_format((int) $onlineBalance, 0, ',', ' ') . " FCFA</b>\n";
             }
+            $telegramMessage .= "\n🧮 Total (Physique + En ligne): <b>" . number_format((int) $total, 0, ',', ' ') . " FCFA</b>\n";
 
             try {
                 app(TelegramService::class)->sendMessage(

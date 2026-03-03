@@ -27,7 +27,7 @@
           "url": "/vouchers",
           "icon": "menu-icon icon-base ti tabler-ticket",
           "icon_color": "text-primary", 
-          "name": "Gérer Vouchers",
+          "name": "Mes Codes",
           "slug": "user.vouchers.index"
         }
       ]

@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   
   function extractErrorMessage(xhr, fallback) {
-    return xhr?.responseJSON?.message || fallback;
+    return xhr?.responseJSON?.message || xhr?.responseJSON?.error || fallback;
   }
 
   if (dt_voucher_table.length) {
@@ -31,6 +31,10 @@ document.addEventListener('DOMContentLoaded', function () {
         url: '/vouchers',
         data: function (d) {
           d.profile_id = $('#profile-filter').val();
+
+          // ✅ AJOUT: filtres statut & source (si présents dans la vue)
+          d.status_filter = $('#status-filter').val();
+          d.source_filter = $('#source-filter').val();
         }
       },
       columns: [
@@ -45,7 +49,11 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         { data: 'code', name: 'code' },
         { data: 'profile_name', name: 'profile.name' },
-        { data: 'status', name: 'status' },
+
+        // ✅ AJOUT: colonne Source (badge HTML côté backend)
+        { data: 'source_label', name: 'source', orderable: false, searchable: false },
+
+        { data: 'status', name: 'status', orderable: false, searchable: false },
         { data: 'action', name: 'action', orderable: false, searchable: false }
       ],
       pageLength: 10,
@@ -57,6 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
       toggleActionButtons();
     });
   }
+
   $('#generate-vouchers-form').on('submit', function (e) {
     e.preventDefault();
     $.ajax({
@@ -67,14 +76,20 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dt_voucher) dt_voucher.ajax.reload();
         Swal.fire({ icon: 'success', title: 'Succès!', text: response.success, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
       },
-      error: function () {
-        Swal.fire({ icon: 'error', title: 'Erreur!', text: 'La génération a échoué.' });
+      error: function (xhr) {
+        Swal.fire({ icon: 'error', title: 'Erreur!', text: extractErrorMessage(xhr, 'La génération a échoué.') });
       }
     });
   });
+
   $('#profile-filter').on('change', function () {
     if (dt_voucher) dt_voucher.ajax.reload();
     $('#print-by-profile-btn').prop('disabled', $(this).val() === '');
+  });
+
+  // ✅ AJOUT: reload quand on change les filtres statut/source (sans toucher au code existant)
+  $('#status-filter, #source-filter').on('change', function () {
+    if (dt_voucher) dt_voucher.ajax.reload(null, true);
   });
 
   dt_voucher_table.on('change', '#select-all-checkbox, .voucher-checkbox', function () {
@@ -130,8 +145,44 @@ document.addEventListener('DOMContentLoaded', function () {
           if (dt_voucher) dt_voucher.ajax.reload(null, false);
           Swal.fire({ icon: 'success', title: 'Supprimé!', text: response.success, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
         },
-        error: function () {
-          Swal.fire({ icon: 'error', title: 'Erreur!', text: 'Impossible de supprimer ce voucher.' });
+        error: function (xhr) {
+          Swal.fire({ icon: 'error', title: 'Erreur!', text: extractErrorMessage(xhr, 'Impossible de supprimer ce voucher.') });
+        }
+      });
+    });
+  });
+
+  // ✅ AJOUT: activer / désactiver voucher (nouveau bouton)
+  dt_voucher_table.on('click', '.item-toggle-active', function () {
+    const voucherId = $(this).data('id');
+
+    Swal.fire({
+      title: 'Changer le statut du voucher ?',
+      text: 'Activer / Désactiver ce voucher.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Oui',
+      cancelButtonText: 'Annuler'
+    }).then(result => {
+      if (!result.isConfirmed) return;
+
+      $.ajax({
+        url: '/vouchers/' + voucherId + '/toggle-active',
+        type: 'POST',
+        success: function (response) {
+          if (dt_voucher) dt_voucher.ajax.reload(null, false);
+          Swal.fire({
+            icon: 'success',
+            title: 'OK',
+            text: response.message || 'Mise à jour effectuée.',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2500
+          });
+        },
+        error: function (xhr) {
+          Swal.fire({ icon: 'error', title: 'Erreur!', text: extractErrorMessage(xhr, 'Impossible de modifier ce voucher.') });
         }
       });
     });
@@ -217,6 +268,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     });
+
     $('#save-template-btn').on('click', function () {
       if (!editor) {
         Swal.fire({ icon: 'warning', title: 'Template non chargé', text: "Ouvrez d'abord l'éditeur de template." });

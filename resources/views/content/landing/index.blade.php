@@ -20,6 +20,15 @@
   <!-- Icons & Core CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZL5JP3HMSL"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'G-ZL5JP3HMSL');
+    </script>
 
   <style>
     :root{
@@ -780,7 +789,7 @@
                  style="background: rgba(115,103,240,.10); filter: blur(90px);"></div>
 
             <img
-              src="{{ asset('assets/img/illustrations/hero-dash-board-light.png') }}"
+              src="{{ asset('assets/img/illustrations/herodashboard-light.png') }}"
               alt="Dashboard PhenixSPOT"
               class="img-fluid position-relative animate-float"
               style="max-width: 94%; border-radius: 26px; box-shadow: 0 30px 60px rgba(15,23,42,.14);"

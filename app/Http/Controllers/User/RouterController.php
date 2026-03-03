@@ -33,12 +33,6 @@ class RouterController extends Controller
         return 0;
     }
 
-    // private function isValidHostOrIp(string $value): bool
-    // {
-    //     if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) return true;
-    //     return (bool) preg_match('/^(?=.{1,253}$)(?!-)(?:[a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}$/', $value);
-    // }
-
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -120,10 +114,6 @@ class RouterController extends Controller
             'api_port'     => 'sometimes|nullable|integer|min:1|max:65535',
             'api_user'     => 'sometimes|nullable|string|max:255',
             'api_password' => 'sometimes|nullable|string|max:255',
-            // 'api_address' => 'nullable|string|max:255',
-            // 'api_port' => 'nullable|integer|min:1|max:65535',
-            // 'api_user' => 'nullable|string|max:255',
-            // 'api_password' => 'nullable|string|max:255',
             'description' => 'nullable|string',
         ]);
 
@@ -346,7 +336,7 @@ class RouterController extends Controller
 /tool fetch url="$coreUrl" mode=https check-certificate=no dst-path=radius-core.rsc;
 :delay 1s;
 /import radius-core.rsc;
-#/file remove radius-core.rsc;
+/file remove radius-core.rsc;
 :delay 1s;
 :log info "Installation RADIUS terminée";
 RSC;

@@ -3,29 +3,62 @@
 @section('content')
 @php
   $countryCode = strtolower($countryCode ?? (auth()->user()->country_code ?? 'ci'));
+  $onsiteBalance = (int) ($onsiteBalance ?? 0);
 @endphp
       
 <h4 class="py-3 mb-4"><span class="text-muted fw-light">Finance /</span> Wallet & Retraits</h4>
 
 <div class="row g-4 mb-4">
-  <div class="col-md-5">
-    <div class="card border-primary">
-      <div class="card-body">
-        <small class="text-muted">Solde actuel</small>
-        <h2 class="mb-1 text-primary">{{ number_format($wallet->balance, 0, ',', ' ') }} FCFA</h2>
-        <small class="text-muted d-block mb-3">Pays: {{ strtoupper($countryCode) }} • Frais retrait: {{ number_format($withdrawFeePercent ?? 5, 2, ',', ' ') }}%</small>
-        <img
-          src="https://images.unsplash.com/photo-1579621970795-87facc2f976d?auto=format&fit=crop&w=1200&q=80"
-          alt="Illustration portefeuille"
-          class="img-fluid rounded-3 border mb-3"
-          style="max-height: 180px; width: 100%; object-fit: cover;"
-          loading="lazy"
-        >
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#withdrawModal">Demander un retrait</button>
+  <!-- ✅ Zone widgets -->
+  <div class="col-md-6">
+    <div class="row g-3">
+      <!-- ✅ Widget Vente en ligne (wallet) -->
+      <div class="col-md-6">
+        <div class="card border-primary h-100">
+          <div class="card-body">
+            <small class="text-muted">Solde actuel (Vente en ligne)</small>
+            <h2 class="mb-1 text-primary">{{ number_format($wallet->balance, 0, ',', ' ') }} FCFA</h2>
+            <small class="text-muted d-block mb-2">
+              Pays: {{ strtoupper($countryCode) }} • Frais retrait: {{ number_format($withdrawFeePercent ?? 5, 2, ',', ' ') }}%
+            </small>
+
+            <!-- ✅ Message clair -->
+            <div class="alert alert-info py-2 mb-3">
+              <small>ℹ️ Les retraits sont déduits uniquement du <b>solde des ventes en ligne</b>.</small>
+            </div>
+
+            <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+              Demander un retrait
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ Widget Vente physique (onsite_sale_wallet) -->
+      <div class="col-md-6">
+        <div class="card border-success h-100">
+          <div class="card-body">
+            <small class="text-muted">Solde actuel (Vente physique)</small>
+            <h2 class="mb-1 text-success">{{ number_format($onsiteBalance, 0, ',', ' ') }} FCFA</h2>
+            <small class="text-muted d-block mb-3">
+              Tickets générés manuellement (onsite)
+            </small>
+
+            <img
+              src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1200&q=80"
+              alt="Illustration vente physique"
+              class="img-fluid rounded-3 border"
+              style="max-height: 120px; width: 100%; object-fit: cover;"
+              loading="lazy"
+            >
+          </div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="col-md-7">
+
+  <!-- Charts -->
+  <div class="col-md-6">
     <div class="row g-3">
       <div class="col-md-6"><div class="card h-100"><div class="card-body"><h6>Retraits par mois</h6><div id="withdrawApexChart" style="height:220px;"></div></div></div></div>
       <div class="col-md-6"><div class="card h-100"><div class="card-body"><h6>Revenus vs Retraits</h6><canvas id="incomeChart" height="220"></canvas></div></div></div>
@@ -108,15 +141,23 @@
       <form action="{{ route('user.wallet.withdraw') }}" method="POST" id="withdrawForm">
         @csrf
         <div class="modal-body">
+
+          <!-- ✅ Message clair dans le modal -->
+          <div class="alert alert-info py-2">
+            <small>ℹ️ Les retraits sont déduits uniquement du <b>solde des ventes en ligne</b>.</small>
+          </div>
+
           <div class="mb-3"><label class="form-label">Montant à retirer (Minimum 5000 FCFA)</label><input type="number" name="amount" id="withdrawAmount" class="form-control" min="5000" max="{{ $wallet->balance }}" required></div>
           <div class="mb-3"><label class="form-label">Moyen de retrait</label><select name="payment_method" class="form-select" required>@foreach(($withdrawOptions ?? []) as $mode => $label)<option value="{{ $mode }}">{{ $label }} ({{ $mode }})</option>@endforeach</select></div>
           <div class="mb-3"><label class="form-label">Numéro mobile money</label><input type="text" name="phone_number" class="form-control" required></div>
+
           <div class="border rounded p-3 bg-light">
-            <div class="d-flex justify-content-between"><span>Solde actuel</span><strong>{{ number_format($wallet->balance, 0, ',', ' ') }} FCFA</strong></div>
+            <div class="d-flex justify-content-between"><span>Solde ventes en ligne</span><strong>{{ number_format($wallet->balance, 0, ',', ' ') }} FCFA</strong></div>
+            <div class="d-flex justify-content-between"><span>Solde ventes physiques</span><strong>{{ number_format($onsiteBalance, 0, ',', ' ') }} FCFA</strong></div>
             <div class="d-flex justify-content-between"><span>Montant à retirer</span><strong id="calcRequested">0 FCFA</strong></div>
             <div class="d-flex justify-content-between"><span>Frais ({{ number_format($withdrawFeePercent ?? 5, 2, ',', ' ') }}%)</span><strong id="calcFee">0 FCFA</strong></div>
             <div class="d-flex justify-content-between border-top pt-2 mt-2"><span>Total débité</span><strong id="calcTotal">0 FCFA</strong></div>
-            <div class="d-flex justify-content-between"><span>Solde restant</span><strong id="calcRemaining">{{ number_format($wallet->balance, 0, ',', ' ') }} FCFA</strong></div>
+            <div class="d-flex justify-content-between"><span>Solde ventes en ligne restant</span><strong id="calcRemaining">{{ number_format($wallet->balance, 0, ',', ' ') }} FCFA</strong></div>
           </div>
         </div>
         <div class="modal-footer"><button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Annuler</button><button type="submit" class="btn btn-primary">Soumettre la demande</button></div>
@@ -131,7 +172,10 @@
 (function () {
   const perPage = 5;
   const feePercent = Number(@json($withdrawFeePercent ?? 5));
+
+  // ✅ IMPORTANT: les retraits sont basés sur le WALLET (vente en ligne)
   const currentBalance = Number(@json((float) ($wallet->balance ?? 0)));
+
   const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
   const chartData = @json($incomeVsWithdrawal ?? ['months'=>[], 'credits'=>[], 'withdrawals'=>[]]);
   const swal = window.Swal;

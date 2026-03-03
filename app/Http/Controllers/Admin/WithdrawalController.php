@@ -155,10 +155,18 @@ class WithdrawalController extends Controller
                 $lockedRequest->save();
 
                 if ($user->telegram_bot_token && $user->telegram_chat_id) {
-                    $message = "✅ Votre demande de retrait de fonds a ete approuvée. Vous recevrez vos fonds des que l'operateur valide le transfert.\n";
-                    $message .= 'Montant: ' . number_format((float) $lockedRequest->amount, 0, ',', ' ') . " FCFA\n";
-                    $message .= 'Frais: ' . number_format($feeAmount, 0, ',', ' ') . " FCFA\n";
-                    $message .= 'Token: ' . ($transferResponse['tokenPay'] ?? 'N/A');
+                    $paymentDetails = is_array($lockedRequest->payment_details) ? $lockedRequest->payment_details : [];
+                    $methodLabel = (string) ($paymentDetails['method_label'] ?? $lockedRequest->withdraw_mode ?? 'N/A');
+                    $token = (string) ($transferResponse['tokenPay'] ?? ($paymentDetails['payout_token'] ?? 'N/A'));
+                
+                    $message = "✅ <b>PhenixSpot | Retrait approuvé</b>\n\n";
+                    $message .= "💸 Montant: <b>" . number_format((float) $lockedRequest->amount, 0, ',', ' ') . " FCFA</b>\n";
+                    $message .= "🧾 Frais: <b>" . number_format((float) $feeAmount, 0, ',', ' ') . " FCFA</b>\n";
+                    $message .= "➖ Total débité : <b>" . number_format((float) $totalDebited, 0, ',', ' ') . " FCFA</b>\n";
+                    $message .= "📲 Méthode: <b>" . $methodLabel . "</b>\n";
+                    $message .= "🔐 Token: <code>" . $token . "</code>\n\n";
+                    $message .= "⏳ Vous recevrez vos fonds dès validation par l'opérateur.";
+                
                     $this->telegramService->sendMessage($user->telegram_bot_token, $user->telegram_chat_id, $message);
                 }
 
@@ -270,8 +278,10 @@ class WithdrawalController extends Controller
 
         $user = $withdrawalRequest->user;
         if ($user && $user->telegram_bot_token && $user->telegram_chat_id) {
-            $message = "❌ Votre demande de retrait a ete rejetée.\n";
-            $message .= 'Raison: ' . $validated['rejection_reason'];
+            $message = "❌ <b>PhenixSpot | Retrait rejeté</b>\n\n";
+            $message .= "📝 Raison: <b>" . $validated['rejection_reason'] . "</b>\n";
+            $message .= "ℹ️ Les retraits sont déduits uniquement du solde des ventes en ligne.";
+        
             $this->telegramService->sendMessage($user->telegram_bot_token, $user->telegram_chat_id, $message);
         }
 

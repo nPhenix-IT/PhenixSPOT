@@ -3,6 +3,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\WithdrawalRequest;
+use App\Models\OnsiteSaleWallet; // ✅ AJOUT
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +31,11 @@ class WalletController extends Controller
             ->limit(300)
             ->get();
 
+        // ✅ AJOUT: solde vente physique (onsite_sale_wallet)
+        $onsiteBalance = (int) OnsiteSaleWallet::where('user_id', $user->id)
+            ->where('type', 'credit')
+            ->sum('amount');
+
         $months = collect(range(1, 12))->map(fn ($m) => Carbon::create(null, $m, 1)->locale('fr')->shortMonthName)->values();
         $creditsByMonth = array_fill(1, 12, 0.0);
         foreach ($incomingTransactions as $tx) {
@@ -52,6 +58,7 @@ class WalletController extends Controller
 
         return view('content.wallet.index', compact(
             'wallet',
+            'onsiteBalance', // ✅ AJOUT
             'withdrawOptions',
             'countryCode',
             'withdrawFeePercent',
@@ -88,6 +95,7 @@ class WalletController extends Controller
         $feeAmount = (float) round(($requestedAmount * $feePercent) / 100, 0);
         $totalDebited = $requestedAmount + $feeAmount;
 
+        // ✅ Retraits déduits du WALLET (ventes en ligne)
         if ((float) $wallet->balance < $totalDebited) {
             return $this->respondError($request, 'Solde insuffisant. Total requis: ' . number_format($totalDebited, 0, ',', ' ') . ' FCFA.');
         }
@@ -110,7 +118,9 @@ class WalletController extends Controller
             ],
         ]);
 
-        $message = 'Votre demande a été envoyée. Vous recevrez vos fonds dès validation par l\'administration.';
+        // ✅ AJOUT: message clair sur la source de débit
+        $message = 'Votre demande a été envoyée. Vous recevrez vos fonds dès validation par l\'administration. '
+            . 'ℹ️ Les retraits sont déduits uniquement du solde des ventes en ligne.';
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([

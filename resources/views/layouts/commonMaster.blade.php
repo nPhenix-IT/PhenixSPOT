@@ -89,7 +89,15 @@
       {!! $primaryColorCSS !!}
     </style>
   @endif
-
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZL5JP3HMSL"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'G-ZL5JP3HMSL');
+    </script>
   <!-- Include Scripts for customizer, helper, analytics, config -->
   <!-- $isFront is used to append the front layout scriptsIncludes only on the front layout otherwise the variable will be blank -->
   @include('layouts/sections/scriptsIncludes' . $isFront)

@@ -129,21 +129,20 @@ use Illuminate\Support\Str;
       </div>
     </div>
     
-    <style>
-      /* Centrer l’avatar quand menu est réduit (selon classe de ton thème) */
-      :is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block,
-      :is(body, html, .layout-wrapper, .layout-container).menu-collapsed #layout-menu .menu-block,
-      #layout-menu.layout-menu-collapsed .menu-block,
-      #layout-menu.menu-collapsed .menu-block {
-        justify-content: center;
-      }
+    <!--<style>-->
+    <!--  :is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block,-->
+    <!--  :is(body, html, .layout-wrapper, .layout-container).menu-collapsed #layout-menu .menu-block,-->
+    <!--  #layout-menu.layout-menu-collapsed .menu-block,-->
+    <!--  #layout-menu.menu-collapsed .menu-block {-->
+    <!--    justify-content: center;-->
+    <!--  }-->
     
-      :is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block .avatar,
-      :is(body, html, .layout-wrapper, .layout-container).menu-collapsed #layout-menu .menu-block .avatar,
-      #layout-menu.layout-menu-collapsed .menu-block .avatar,
-      #layout-menu.menu-collapsed .menu-block .avatar {
-        margin-right: 0 !important;
-      }
-    </style>
+    <!--  :is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block .avatar,-->
+    <!--  :is(body, html, .layout-wrapper, .layout-container).menu-collapsed #layout-menu .menu-block .avatar,-->
+    <!--  #layout-menu.layout-menu-collapsed .menu-block .avatar,-->
+    <!--  #layout-menu.menu-collapsed .menu-block .avatar {-->
+    <!--    margin-right: 0 !important;-->
+    <!--  }-->
+    <!--</style>-->
 
 </aside>

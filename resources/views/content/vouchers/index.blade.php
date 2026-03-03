@@ -47,44 +47,116 @@
   <h5 class="card-header">Générer de nouveaux vouchers</h5>
   <div class="card-body">
     <form id="generate-vouchers-form" class="row g-3">
-      <div class="col-sm-12 col-lg-3"><label class="form-label">Profil</label><select name="profile_id" class="form-select" required><option value="" selected disabled>Sélectionner...</option>@foreach ($profiles as $profile)<option value="{{ $profile->id }}">{{ $profile->name }}</option>@endforeach</select></div>
-      <div class="col-md-6 col-lg-2"><label class="form-label">Quantité</label><input type="number" name="quantity" class="form-control" value="10" min="1" max="500" required></div>
-      <div class="col-md-6 col-lg-2"><label class="form-label">Longueur</label><select name="length" class="form-select" required><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option><option value="10">10</option></select></div>
-      <div class="col-md-6 col-lg-3"><label class="form-label">Type de caractères</label><select name="charset" class="form-select" required><option value="A1B2C" selected>Alphanumérique Majuscule</option><option value="a1b2c">Alphanumérique Minuscule</option><option value="ABC">Lettres Majuscules</option><option value="abc">Lettres Minuscules</option></select></div>
-      <div class="col-md-6 col-lg-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100"><i class="icon-base ti tabler-bolt me-1"></i> Générer</button></div>
+      <div class="col-sm-12 col-lg-3">
+        <label class="form-label">Profil</label>
+        <select name="profile_id" class="form-select" required>
+          <option value="" selected disabled>Sélectionner...</option>
+          @foreach ($profiles as $profile)
+            <option value="{{ $profile->id }}">{{ $profile->name }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div class="col-md-6 col-lg-2">
+        <label class="form-label">Quantité</label>
+        <input type="number" name="quantity" class="form-control" value="10" min="1" max="500" required>
+      </div>
+      <div class="col-md-6 col-lg-2">
+        <label class="form-label">Longueur</label>
+        <select name="length" class="form-select" required>
+          <option value="4">4</option>
+          <option value="6" selected>6</option>
+          <option value="8">8</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <label class="form-label">Type de caractères</label>
+        <select name="charset" class="form-select" required>
+          <option value="A1B2C" selected>Alphanumérique Majuscule</option>
+          <option value="a1b2c">Alphanumérique Minuscule</option>
+          <option value="ABC">Lettres Majuscules</option>
+          <option value="abc">Lettres Minuscules</option>
+        </select>
+      </div>
+      <div class="col-md-6 col-lg-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="icon-base ti tabler-bolt me-1"></i> Générer
+        </button>
+      </div>
     </form>
   </div>
 </div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <h5 class="mb-0">Liste des vouchers</h5>
-      <div class="d-flex gap-2 align-items-center">
-        <select id="profile-filter" class="form-select form-select-sm">
-            <option value="">Filtrer par profil</option>
-            @foreach ($profiles as $profile)
-                <option value="{{ $profile->id }}">{{ $profile->name }}</option>
-            @endforeach
+  <!-- ✅ Mise à jour ici: filtres plus courts + alignés à gauche des boutons -->
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+    <h5 class="mb-0">Liste des vouchers</h5>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+
+      <!-- ✅ Filtres à gauche (plus courts) -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <select id="profile-filter" class="form-select form-select-sm" style="width: 170px;">
+          <option value="">Profil</option>
+          @foreach ($profiles as $profile)
+            <option value="{{ $profile->id }}">{{ $profile->name }}</option>
+          @endforeach
         </select>
-        <button type="button" class="btn btn-secondary" id="print-by-profile-btn" disabled><i class="icon-base ti tabler-printer me-1"></i> Imprimer</button>
-        <button type="button" class="btn btn-outline-secondary" id="print-selected-btn" disabled><i class="icon-base ti tabler-printer me-1"></i> Imprimer sélection</button>
-        <button type="button" class="btn btn-info" id="edit-template-btn" data-template-url="/vouchers/template"><i class="icon-base ti tabler-edit me-1"></i> Template</button>
-        <button type="button" class="btn btn-danger" id="delete-selected-btn" disabled><i class="icon-base ti tabler-trash me-1"></i> Supprimer</button>
+
+        <!-- ✅ filtre statut -->
+        <select id="status-filter" class="form-select form-select-sm" style="width: 150px;">
+          <option value="">Statut</option>
+          <option value="unused">Non utilisés</option>
+          <option value="used">Utilisés</option>
+          <option value="disabled">Désactivés</option>
+        </select>
+
+        <!-- ✅ filtre source -->
+        <select id="source-filter" class="form-select form-select-sm" style="width: 160px;">
+          <option value="">Source</option>
+          <option value="online">Page de vente</option>
+          <option value="manual">Manuelle</option>
+        </select>
+      </div>
+
+      <!-- ✅ séparateur -->
+      <div class="vr d-none d-md-block mx-1"></div>
+
+      <!-- ✅ Boutons -->
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <button type="button" class="btn btn-secondary btn-sm" id="print-by-profile-btn" disabled>
+          <i class="icon-base ti tabler-printer me-1"></i> Imprimer
+        </button>
+
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="print-selected-btn" disabled>
+          <i class="icon-base ti tabler-printer me-1"></i> Imprimer sélection
+        </button>
+
+        <button type="button" class="btn btn-info btn-sm" id="edit-template-btn" data-template-url="/vouchers/template">
+          <i class="icon-base ti tabler-edit me-1"></i> Template
+        </button>
+
+        <button type="button" class="btn btn-danger btn-sm" id="delete-selected-btn" disabled>
+          <i class="icon-base ti tabler-trash me-1"></i> Supprimer
+        </button>
       </div>
     </div>
-    <div class="card-datatable table-responsive">
-      <table class="datatables-vouchers table table-striped">
-        <thead class="table-light">
-          <tr>
-            <th><input class="form-check-input" type="checkbox" id="select-all-checkbox"></th>
-            <th>Code</th>
-            <th>Profil</th>
-            <th>Statut</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-      </table>
-    </div>
+  </div>
+
+  <div class="card-datatable table-responsive">
+    <table class="datatables-vouchers table table-striped">
+      <thead class="table-light">
+        <tr>
+          <th><input class="form-check-input" type="checkbox" id="select-all-checkbox"></th>
+          <th>Code</th>
+          <th>Profil</th>
+          <th>Source</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+    </table>
+  </div>
 </div>
 @endif
 

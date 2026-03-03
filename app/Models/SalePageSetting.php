@@ -7,26 +7,34 @@ use Illuminate\Database\Eloquent\Model;
 
 class SalePageSetting extends Model
 {
-    use HasFactory;
+  use HasFactory;
 
-    protected $fillable = [
-        'user_id',
-        'title',
-        'description',
-        'primary_color',
-        'login_primary_color',
-        'login_ticker_text',
-        'login_dns',
-        'login_contact_phone_1',
-        'login_contact_label_1',
-        'login_contact_phone_2',
-        'login_contact_label_2',
-        'commission_payer',
-        'commission_percent',
-    ];
+  protected $fillable = [
+    'user_id',
+    'title',
+    'description',
+    'primary_color',
+    'login_primary_color',
+    'login_ticker_text',
+    'login_dns',
 
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
+    // ✅ labels only
+    'login_contact_label_1',
+    'login_contact_label_2',
+
+    // ✅ JSON pricing
+    'login_pricing',
+
+    'commission_payer',
+    'commission_percent',
+  ];
+
+  protected $casts = [
+    'login_pricing' => 'array',
+  ];
+
+  public function user()
+  {
+    return $this->belongsTo(User::class);
+  }
 }

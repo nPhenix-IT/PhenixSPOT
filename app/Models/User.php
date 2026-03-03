@@ -122,5 +122,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(SalePageSetting::class);
     }
+    
+    public function onsiteSales()
+    {
+        return $this->hasMany(OnsiteSaleWallet::class);
+    }
 
 }

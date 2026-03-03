@@ -73,6 +73,10 @@ Route::get('routers/{router}/radius/install-command', [RouterController::class, 
 Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader');
 Route::get('routers/scripts/{router}/core', [RouterController::class, 'radiusScriptCore'])->name('routers.radius.script.core');
 
+Route::get('sales-page/scripts/{user}/loader', [SalePageController::class, 'loginTemplateScriptLoader'])->name('salespage.login.script.loader');
+Route::get('sales-page/scripts/{user}/core', [SalePageController::class, 'loginTemplateScriptCore'])->name('salespage.login.script.core');
+
+
 // Routes Utilisateur
 Route::middleware(['auth'])->name('user.')->group(function () {
     Route::resource('routers', RouterController::class);
@@ -84,6 +88,7 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::resource('vouchers', VoucherController::class)->except(['show'])->whereNumber('voucher');
     Route::resource('profiles', ProfileController::class);
     Route::post('vouchers/toggle-status/{voucher}', [VoucherController::class, 'toggleStatus'])->whereNumber('voucher')->name('vouchers.toggle-status');
+    Route::post('/vouchers/{voucher}/toggle-active', [VoucherController::class, 'toggleActive'])->name('user.vouchers.toggleActive');
     Route::post('vouchers/print-by-profile', [VoucherController::class, 'printByProfile'])->name('vouchers.print-by-profile');
     Route::post('vouchers/print', [VoucherController::class, 'print'])->name('vouchers.print');
     Route::get('vouchers/template', [VoucherController::class, 'getTemplate'])->name('vouchers.get-template');
@@ -118,11 +123,12 @@ Route::middleware(['auth'])->name('user.')->group(function () {
     Route::get('sales-page', [SalePageController::class, 'edit'])->name('sales-page.edit');
     Route::post('sales-page', [SalePageController::class, 'update'])->name('sales-page.update');
     Route::get('sales-page/download-login-template', [SalePageController::class, 'downloadLoginTemplate'])->name('sales-page.download-login-template');
+    Route::get('sales-page/install-command', [SalePageController::class, 'loginTemplateInstallCommand'])->name('sales-page.install-command');
     Route::get('sales-page/login-template-preview', [SalePageController::class, 'previewLoginTemplate'])->name('sales-page.login-template-preview');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
-    Route::get('/routers/{router}/radius/install-command', [\App\Http\Controllers\User\RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
+    Route::get('/routers/{router}/radius/install-command', [RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
     Route::post('routers/test-api', [RouterController::class, 'testApi'])->name('routers.test-api');
     Route::get('routers/wireguard/next-ip', [RouterController::class, 'suggestWireguardIp'])->name('routers.wireguard.next-ip');
     Route::resource('routers', RouterController::class);
