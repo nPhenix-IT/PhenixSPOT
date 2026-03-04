@@ -21,6 +21,9 @@ use App\Http\Controllers\Admin\VpnServerController;
 use App\Http\Controllers\Admin\WithdrawalController;
 use App\Http\Controllers\Admin\RadiusServerController;
 use App\Http\Controllers\Admin\RadiusTesterController;
+use App\Http\Controllers\Admin\AccessPermissionController;
+use App\Http\Controllers\Admin\AccessRoleController;
+use App\Http\Controllers\Admin\UserManagementController;
 
 use App\Http\Controllers\Public\SaleController;
 use App\Http\Controllers\Public\PaymentController;
@@ -51,8 +54,7 @@ Route::get('/geo-test', function () {
         'country_name' => $record->country->name ?? null,
     ];
 });
-
-// Page d'accueil
+//@@ -56,51 +59,51 @@
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats'])->middleware('auth')->name('dashboard.stats');
@@ -78,7 +80,7 @@ Route::get('sales-page/scripts/{user}/core', [SalePageController::class, 'loginT
 
 
 // Routes Utilisateur
-Route::middleware(['auth'])->name('user.')->group(function () {
+Route::middleware(['auth', 'active.user'])->name('user.')->group(function () {
     Route::resource('routers', RouterController::class);
     Route::post('vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete');
     Route::delete('vouchers/bulk-delete', [VoucherController::class, 'bulkDelete'])->name('vouchers.bulk-delete.delete');
@@ -135,7 +137,7 @@ Route::middleware(['auth'])->name('user.')->group(function () {
 });
 
 // Routes Admin
-Route::middleware(['auth', 'role:Super-admin|Admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'active.user', 'role:Super-admin|Admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('plans', PlanController::class);
     Route::resource('coupons', CouponController::class);
     
@@ -148,6 +150,49 @@ Route::middleware(['auth', 'role:Super-admin|Admin'])->prefix('admin')->name('ad
     Route::post('vpn-servers/test-connection', [VpnServerController::class, 'testConnection'])->name('vpn-servers.test-connection');
     Route::resource('vpn-servers', VpnServerController::class);
     // Route::post('vpn-servers/wireguard', [VpnServerController::class, 'storeWireguard'])->name('vpn-servers.store-wireguard');
+
+
+    Route::get('access/permissions', [AccessPermissionController::class, 'index'])
+        ->middleware('permission:access.permissions.view')
+        ->name('access.permissions.index');
+    Route::post('access/permissions', [AccessPermissionController::class, 'store'])
+        ->middleware('permission:access.permissions.manage')
+        ->name('access.permissions.store');
+    Route::put('access/permissions/{permission}', [AccessPermissionController::class, 'update'])
+        ->middleware('permission:access.permissions.manage')
+        ->name('access.permissions.update');
+    Route::delete('access/permissions/{permission}', [AccessPermissionController::class, 'destroy'])
+        ->middleware('permission:access.permissions.manage')
+        ->name('access.permissions.destroy');
+
+    Route::get('access/roles', [AccessRoleController::class, 'index'])
+        ->middleware('permission:access.roles.view')
+        ->name('access.roles.index');
+    Route::post('access/roles', [AccessRoleController::class, 'store'])
+        ->middleware('permission:access.roles.manage')
+        ->name('access.roles.store');
+    Route::put('access/roles/{role}', [AccessRoleController::class, 'update'])
+        ->middleware('permission:access.roles.manage')
+        ->name('access.roles.update');
+
+    Route::get('users', [UserManagementController::class, 'index'])
+        ->middleware('permission:users.view')
+        ->name('users.index');
+    Route::post('users', [UserManagementController::class, 'store'])
+        ->middleware('permission:users.create')
+        ->name('users.store');
+    Route::put('users/{user}', [UserManagementController::class, 'update'])
+        ->middleware('permission:users.update')
+        ->name('users.update');
+    Route::post('users/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])
+        ->middleware('permission:users.toggle')
+        ->name('users.toggle-status');
+    Route::post('users/{user}/assign-plan', [UserManagementController::class, 'assignPlan'])
+        ->middleware('permission:users.assign-plan')
+        ->name('users.assign-plan');
+    Route::post('users/{user}/impersonate', [UserManagementController::class, 'impersonate'])
+        ->middleware('permission:users.impersonate')
+        ->name('users.impersonate');
 
     Route::get('withdrawals', [WithdrawalController::class, 'index'])->name('withdrawals.index');
     Route::post('withdrawals/{withdrawalRequest}/approve', [WithdrawalController::class, 'approve'])->name('withdrawals.approve');
@@ -173,3 +218,6 @@ Route::post('plans/payment/webhook', [PlanPaymentController::class, 'webhook'])-
 // --- Route pour le Webhook FreeRADIUS ---
 // Cette route doit être accessible publiquement par le serveur RADIUS.
 Route::post('/radius/webhook', [RadiusWebhookController::class, 'handle'])->name('radius.webhook');
+Route::post('/impersonation/leave', [UserManagementController::class, 'leaveImpersonation'])
+    ->middleware(['auth'])
+    ->name('impersonation.leave');

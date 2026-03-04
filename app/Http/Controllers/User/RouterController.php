@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Router;
 use App\Models\Nas;
 use App\Models\RadiusServer;
+use App\Models\Transaction;
 use App\Models\VpnServer;
 use App\Services\WireGuard\WireGuardGeneratorService;
 use App\Services\WireGuard\WireGuardIpAllocator;
@@ -14,23 +15,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use App\Services\PlanLimitService;
+use App\Support\PlanLimits;
 use Yajra\DataTables\DataTables;
 use Illuminate\Validation\Rule;
 
 class RouterController extends Controller
 {
-    private function isUnlimitedValue($value): bool
+    public function __construct(private readonly PlanLimitService $planLimitService)
     {
-        if ($value === null) return false;
-        $normalized = strtolower(trim((string) $value));
-        return in_array($normalized, ['-1', 'illimite', 'illimité', 'unlimited', 'infini', 'infinite', '∞'], true);
+        
     }
-
-    private function normalizeLimit($value): int
+    
+    private function getSupplementaryRouterPrice(): int
     {
-        if ($this->isUnlimitedValue($value)) return PHP_INT_MAX;
-        if (is_numeric($value)) return max(0, (int) $value);
-        return 0;
+        return (int) config('fees.supplementary_router_monthly', 3000);
     }
 
     public function index(Request $request)
@@ -64,16 +63,21 @@ class RouterController extends Controller
                 ->make(true);
         }
 
-        $hasActiveSubscription = $user->hasRole(['Super-admin', 'Admin']) || ($user->subscription && $user->subscription->isActive());
+        $hasActiveSubscription = $this->planLimitService->hasActiveSubscription($user);
         $routerCount = $user->routers()->count();
 
-        $planFeatures = $hasActiveSubscription
-            ? ($user->hasRole(['Super-admin', 'Admin']) ? ['routers' => PHP_INT_MAX] : ($user->subscription->plan->features ?? []))
-            : [];
+        $limits = $this->planLimitService->limits($user);
+        $limit = $limits[PlanLimits::KEY_ROUTERS] ?? 0;
+        $limit = $limit === null ? PHP_INT_MAX : $limit;
+        $isAtLimit = $limit !== PHP_INT_MAX ? $routerCount >= $limit : false;
+        $supplementaryRouterPrice = $this->getSupplementaryRouterPrice();
+        $walletBalance = (int) optional($user->wallet)->balance;
+        $limitLabel = $limit === PHP_INT_MAX ? 'Illimité' : number_format((int) $limit, 0, ',', ' ');
+        $usagePercent = $limit !== PHP_INT_MAX && $limit > 0
+            ? min(100, ($routerCount / (int) $limit) * 100)
+            : 0;
 
-        $limit = $this->normalizeLimit($planFeatures['routers'] ?? 0);
-
-        return view('content.routers.index', compact('hasActiveSubscription', 'routerCount', 'limit'));
+        return view('content.routers.index', compact('hasActiveSubscription', 'routerCount', 'limit', 'isAtLimit', 'supplementaryRouterPrice', 'walletBalance', 'limitLabel', 'usagePercent'));
     }
 
     public function store(Request $request)
@@ -82,19 +86,21 @@ class RouterController extends Controller
         $isUpdating = $request->filled('id');
 
         if (!$isUpdating) {
-            if (!$user->hasRole(['Super-admin', 'Admin'])) {
-                $subscription = $user->subscription;
-                if (!$subscription || !$subscription->isActive()) {
-                    return response()->json(['error' => "Vous devez avoir un abonnement actif pour ajouter un routeur."], 403);
-                }
+            if (!$this->planLimitService->hasActiveSubscription($user)) {
+                return response()->json(['error' => "Vous devez avoir un abonnement actif pour ajouter un routeur."], 403);
+            }
+        }
+        
+        $isSupplementary = !$isUpdating && !$this->planLimitService->can($user, PlanLimits::KEY_ROUTERS);
+        $supplementaryCost = $isSupplementary ? $this->getSupplementaryRouterPrice() : 0;
+        
+        if ($supplementaryCost > 0) {
+            $wallet = $user->wallet;
 
-                $planFeatures = $subscription->plan->features ?? [];
-                $routerCount = $user->routers()->count();
-                $routerLimit = $this->normalizeLimit($planFeatures['routers'] ?? 0);
-
-                if ($routerLimit > 0 && $routerLimit !== PHP_INT_MAX && $routerCount >= $routerLimit) {
-                    return response()->json(['error' => "Limite de routeurs atteinte pour votre plan."], 403);
-                }
+            if (!$wallet || (float) $wallet->balance < $supplementaryCost) {
+                return response()->json([
+                    'error' => "Limite atteinte : le routeur supplémentaire coûte {$supplementaryCost} FCFA/mois. Solde wallet insuffisant."
+                ], 403);
             }
         }
         
@@ -130,7 +136,24 @@ class RouterController extends Controller
         $validated['radius_secret'] = $activeServer->radius_secret;
 
         try {
-            DB::transaction(function () use ($request, $validated, $user) {
+            DB::transaction(function () use ($request, $validated, $user, $isSupplementary, $supplementaryCost) {
+
+                if ($isSupplementary && $supplementaryCost > 0) {
+                    $wallet = $user->wallet()->lockForUpdate()->first();
+
+                    if (!$wallet || (float) $wallet->balance < $supplementaryCost) {
+                        throw new RuntimeException("Solde wallet insuffisant pour ajouter un routeur supplémentaire ({$supplementaryCost} FCFA). ");
+                    }
+
+                    $wallet->decrement('balance', $supplementaryCost);
+
+                    Transaction::create([
+                        'wallet_id' => $wallet->id,
+                        'type' => 'debit',
+                        'amount' => $supplementaryCost,
+                        'description' => 'Ajout routeur supplémentaire (upgrade intelligent)',
+                    ]);
+                }
 
                 $router = Router::updateOrCreate(
                     ['id' => $request->id, 'user_id' => $user->id],
@@ -156,7 +179,11 @@ class RouterController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
-        return response()->json(['success' => 'Routeur enregistré, synchronisé avec RADIUS et prêt pour WireGuard.']);
+        $message = $isSupplementary
+            ? 'Routeur supplémentaire ajouté avec succès. 3 000 FCFA ont été débités de votre wallet.'
+            : 'Routeur enregistré, synchronisé avec RADIUS et prêt pour WireGuard.';
+
+        return response()->json(['success' => $message]);
     }
 
     public function testApi(Request $request)

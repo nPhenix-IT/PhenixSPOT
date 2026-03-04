@@ -11,10 +11,15 @@ use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\RadiusLimitGuardService;
 use Carbon\Carbon;
 
 class RadiusWebhookController extends Controller
 {
+    public function __construct(private readonly RadiusLimitGuardService $radiusLimitGuardService)
+    {
+    }
+    
     /**
      * Point d'entrée principal pour FreeRADIUS.
      */
@@ -91,8 +96,8 @@ class RadiusWebhookController extends Controller
      */
     private function handleAuthorize($username)
     {
-        $voucher = Voucher::where('code', $username)
-            ->with(['profile'])
+        $voucher = Voucher::whereRaw('LOWER(TRIM(code)) = LOWER(TRIM(?))', [(string) $username])
+            ->with(['profile', 'user'])
             ->first();
 
         // 1. ERREUR : Code inexistant ou désactivé
@@ -104,6 +109,27 @@ class RadiusWebhookController extends Controller
         }
 
         $profile = $voucher->profile;
+        
+        if ($voucher->user instanceof User) {
+            $alreadyConnected = DB::table('radacct')
+                ->whereRaw('LOWER(TRIM(username)) = LOWER(TRIM(?))', [(string) $username])
+                ->whereNull('acctstoptime')
+                ->where(function ($query) {
+                    $query->where('acctupdatetime', '>', now()->subDay())
+                        ->orWhere(function ($fallback) {
+                            $fallback->whereNull('acctupdatetime')
+                                ->where('acctstarttime', '>', now()->subDay());
+                        });
+                })
+                ->exists();
+
+            if (!$alreadyConnected && !$this->radiusLimitGuardService->canVoucherConnect($voucher->user)) {
+                return response()->json([
+                    'control:Auth-Type' => 'Reject',
+                    'reply:Reply-Message' => 'Limite forfait atteinte : trop de vouchers connectés. Mettez à niveau votre plan.'
+                ], 200);
+            }
+        }
 
         // 2. ERREUR : VALIDITÉ CALENDAIRE (On vérifie avant le reste)
         if ($voucher->status === 'used' && $voucher->used_at && $profile->validity_period > 0) {

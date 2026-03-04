@@ -10,6 +10,8 @@ use App\Models\Transaction;
  use App\Services\MikroTikApiService;
 use App\Services\MoneyFusionService;
 use Carbon\Carbon;
+use App\Services\PlanLimitService;
+use App\Support\PlanLimits;
  use Illuminate\Http\Request;
  use Illuminate\Support\Facades\Auth;
  use Illuminate\Support\Facades\DB;
@@ -18,34 +20,10 @@ use Illuminate\Support\Str;
  
  class VpnAccountController extends Controller
  {
-     private function isUnlimitedValue($value): bool
-   {
-       if ($value === null) {
-           return false;
+     public function __construct(private readonly PlanLimitService $planLimitService)
+       {
+           
        }
-
-       $normalized = strtolower(trim((string) $value));
-       return in_array($normalized, ['-1', 'illimite', 'illimité', 'unlimited', 'infini', 'infinite', '∞'], true);
-   }
-
-   private function normalizeLimit($value): int
-   {
-       if ($this->isUnlimitedValue($value)) {
-           return PHP_INT_MAX;
-       }
-
-       if (is_numeric($value)) {
-           return max(0, (int) $value);
-       }
-
-       return 0;
-   }
-
-   private function resolveVpnLimit(array $planFeatures): int
-   {
-       $rawLimit = $planFeatures['vpn_accounts'] ?? ($planFeatures['routers'] ?? 0);
-       return $this->normalizeLimit($rawLimit);
-   }
 
    public function index()
     {
@@ -68,26 +46,21 @@ use Illuminate\Support\Str;
                 return $server->accounts_count < $max;
             });
     
-        $hasActiveSubscription =
-            $user->hasRole(['Super-admin', 'Admin'])
-            || ($user->subscription && $user->subscription->isActive());
-    
-        $planFeatures = $hasActiveSubscription
-            ? ($user->hasRole(['Super-admin', 'Admin'])
-                ? ['vpn_accounts' => PHP_INT_MAX]
-                : $user->subscription->plan->features)
-            : [];
-    
-        $vpnAccountCount = $user->vpnAccounts()
-            ->where('status', 'active')
-            ->count();
-    
-        $limit = $this->resolveVpnLimit($planFeatures);
-        $isAtLimit = $limit !== PHP_INT_MAX && $limit > 0 ? $vpnAccountCount >= $limit : false;
-        $limitLabel = $limit === PHP_INT_MAX ? 'Illimité' : number_format($limit, 0, ',', ' ');
-        $usagePercent = ($limit !== PHP_INT_MAX && $limit > 0)
-            ? min(100, ($vpnAccountCount / $limit) * 100)
+        $hasActiveSubscription = $this->planLimitService->hasActiveSubscription($user);
+
+        $usage = $this->planLimitService->usage($user);
+        $limits = $this->planLimitService->limits($user);
+
+        $vpnAccountCount = (int) ($usage[PlanLimits::KEY_VPN_ACCOUNTS] ?? 0);
+        $rawLimit = $limits[PlanLimits::KEY_VPN_ACCOUNTS] ?? 0;
+        $limit = $rawLimit === null ? PHP_INT_MAX : $rawLimit;
+        $isAtLimit = $rawLimit !== null && $rawLimit > 0 ? $vpnAccountCount >= $rawLimit : false;
+        $limitLabel = $rawLimit === null ? 'Illimité' : number_format((int) $rawLimit, 0, ',', ' ');
+        $usagePercent = ($rawLimit !== null && $rawLimit > 0)
+            ? min(100, ($vpnAccountCount / (int) $rawLimit) * 100)
             : 0;
+        $supplementaryVpnPrice = 500;
+        $walletBalance = (int) optional($user->wallet)->balance;
         
         $accounts->getCollection()->transform(function ($account) {
 
@@ -113,7 +86,9 @@ use Illuminate\Support\Str;
                 'limit',
                 'limitLabel',
                 'usagePercent',
-                'isAtLimit'
+                'isAtLimit',
+                'supplementaryVpnPrice',
+                'walletBalance'
             )
         );
     }
@@ -132,17 +107,12 @@ use Illuminate\Support\Str;
            'payment_method' => 'nullable|in:wallet,moneyfusion',
          ]);
  
-       $hasActiveSubscription = $user->hasRole(['Super-admin', 'Admin']) || ($user->subscription && $user->subscription->isActive());
-       if (!$hasActiveSubscription) {
+       if (!$this->planLimitService->hasActiveSubscription($user)) {
            return back()->with('error', 'Votre abonnement est inactif. Veuillez activer un forfait.');
        }
 
-       $planFeatures = $user->hasRole(['Super-admin', 'Admin']) ? ['vpn_accounts' => PHP_INT_MAX] : ($user->subscription->plan->features ?? []);
-       $limit = $this->resolveVpnLimit($planFeatures);
-       $activeCount = $user->vpnAccounts()->where('status', 'active')->count();
-       $isSupplementary = $limit !== PHP_INT_MAX && $limit > 0 ? $activeCount >= $limit : false;
-
        $duration = (int) $request->duration;
+       $isSupplementary = !$this->planLimitService->can($user, PlanLimits::KEY_VPN_ACCOUNTS);
        $supplementaryCost = $isSupplementary ? (500 * $duration) : 0;
        $customPortCost = $request->has('use_custom_port') ? (200 * $duration) : 0;
        $totalCharge = $supplementaryCost + $customPortCost;

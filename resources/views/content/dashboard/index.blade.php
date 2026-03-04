@@ -30,6 +30,15 @@ body { background-color: var(--dash-bg); }
 
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
+    @if(session('impersonator_id'))
+    <div class="alert alert-success d-flex justify-content-between align-items-center mb-4" role="alert">
+      <div>
+        <h6 class="alert-heading mb-1">Attention!!</h6>
+        <span>You are actually logged as <strong>{{ auth()->user()->name }}</strong>, you can logout as <strong>Super Admin</strong>.</span>
+      </div>
+      <form method="POST" action="{{ route('impersonation.leave') }}">@csrf<button class="btn btn-sm btn-success" type="submit">Logout as Super Admin</button></form>
+    </div>
+  @endif
   <!-- Main Header -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>

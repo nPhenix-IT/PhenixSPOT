@@ -676,7 +676,7 @@
     ['key'=>'hotspot', 'label'=>'Hotspot & Vouchers', 'feature'=>'hotspot', 'type'=>'bool', 'icon'=>'ti ti-wifi'],
     ['key'=>'pppoe', 'label'=>'PPPoE', 'feature'=>'pppoe', 'type'=>'bool', 'icon'=>'ti ti-plug-connected'],
     ['key'=>'vpn', 'label'=>'Comptes VPN', 'feature'=>'vpn_accounts', 'icon'=>'ti ti-shield-lock'],
-    ['key'=>'users', 'label'=>'Utilisateurs actifs', 'feature'=>'active_users', 'icon'=>'ti ti-users'],
+    ['key'=>'users', 'label'=>'Vouchers/Coupons connectés', 'feature'=>'vouchers_connected', 'icon'=>'ti ti-users'],
     ['key'=>'portal', 'label'=>'Portail captif / Page de vente', 'feature'=>'sale_page', 'type'=>'bool', 'icon'=>'ti ti-browser'],
     ['key'=>'payments', 'label'=>'Paiements & Wallet', 'feature'=>'payments', 'type'=>'bool', 'icon'=>'ti ti-credit-card'],
     ['key'=>'reports', 'label'=>'Rapports & Analytics', 'feature'=>'advanced_reports', 'type'=>'bool', 'icon'=>'ti ti-chart-bar'],
@@ -1096,7 +1096,7 @@
 
             <ul class="feature-list">
               <li class="feature-item"><i class="ti ti-router text-primary"></i> <div><strong>{{ $formatLimit($features['routers'] ?? null) }}</strong> <small>routeur(s)</small></div></li>
-              <li class="feature-item"><i class="ti ti-users text-primary"></i> <div><strong>{{ $formatLimit($features['active_users'] ?? null) }}</strong> <small>utilisateurs actifs</small></div></li>
+              <li class="feature-item"><i class="ti ti-users text-primary"></i> <div><strong>{{ $formatLimit($features['vouchers_connected'] ?? ($features['active_users'] ?? null)) }}</strong> <small>vouchers connectés</small></div></li>
               <li class="feature-item"><i class="ti ti-shield-lock text-primary"></i> <div><strong>{{ $formatLimit($features['vpn_accounts'] ?? null) }}</strong> <small>comptes VPN</small></div></li>
 
               <li class="feature-item"><i class="ti {{ $hasHotspot ? 'ti-check text-success' : 'ti-x text-muted' }}"></i> <div><strong>Hotspot</strong> <small>& vouchers</small></div></li>
@@ -1191,7 +1191,9 @@
                       } elseif ($type === 'bool') {
                         $display = !empty($tierFeatures[$row['feature']]);
                       } else {
-                        $display = $formatLimit($tierFeatures[$row['feature']] ?? null);
+                        $display = ($row['feature'] ?? '') === 'vouchers_connected'
+                          ? $formatLimit($tierFeatures['vouchers_connected'] ?? ($tierFeatures['active_users'] ?? null))
+                          : $formatLimit($tierFeatures[$row['feature']] ?? null);
                       }
                     @endphp
 

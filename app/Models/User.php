@@ -31,6 +31,7 @@ class User extends Authenticatable
         'name',
         'email',
         'phone_number',
+        'is_active',
         'country_code',
         'trial_used_at',
         'sms_enabled',
@@ -67,6 +68,7 @@ class User extends Authenticatable
     
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'is_active' => 'boolean',
         'trial_used_at' => 'datetime',
         'password' => 'hashed',
         'mikrotik_password' => 'encrypted',

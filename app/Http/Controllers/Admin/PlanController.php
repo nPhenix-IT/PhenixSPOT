@@ -51,7 +51,16 @@ class PlanController extends Controller
 
   public function edit(Plan $plan)
   {
-    return response()->json($plan);
+    $payload = $plan->toArray();
+    $features = is_array($payload['features'] ?? null) ? $payload['features'] : [];
+
+    if (!array_key_exists('vouchers_connected', $features) && array_key_exists('active_users', $features)) {
+      $features['vouchers_connected'] = $features['active_users'];
+    }
+
+    $payload['features'] = $features;
+
+    return response()->json($payload);
   }
 
   public function update(Request $request, Plan $plan)
@@ -97,6 +106,7 @@ class PlanController extends Controller
     $validated['features']['hotspot'] = true;
     $validated['features']['vouchers'] = true;
 
+    unset($validated['features']['active_users']);
     $validated['is_active'] = $request->has('is_active');
     $validated['trial_enabled'] = $request->has('trial_enabled');
     $validated['trial_days'] = $validated['trial_enabled']

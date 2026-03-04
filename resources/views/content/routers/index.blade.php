@@ -37,6 +37,29 @@
 </div>
 @endif
 
+
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="mb-2">Surveillance du forfait</h6>
+        <p class="mb-2">
+            Routeurs actifs: <strong>{{ $routerCount }}</strong> / <strong>{{ $limitLabel ?? $limit }}</strong> inclus.
+        </p>
+        @if(($limit ?? 0) !== PHP_INT_MAX)
+            <div class="progress">
+                <div class="progress-bar" style="width: {{ $usagePercent ?? 0 }}%;"></div>
+            </div>
+        @endif
+        @if($isAtLimit)
+        <small class="text-warning d-block mt-2">Limite atteinte: les nouveaux routeurs seront facturés à {{ number_format($supplementaryRouterPrice ?? 3000, 0, ',', ' ') }} FCFA/routeur/mois.</small>
+        <div class="alert alert-warning mt-3 mb-0" role="alert">
+            <h6 class="alert-heading mb-1">Limite du plan atteinte</h6>
+            <p class="mb-1">Vous avez atteint la limite de routeurs incluse dans votre forfait. Vous pouvez continuer en ajoutant un routeur supplémentaire à <strong>{{ number_format($supplementaryRouterPrice ?? 3000, 0, ',', ' ') }} FCFA/mois</strong>.</p>
+            <small class="text-muted">Solde wallet actuel : {{ number_format($walletBalance ?? 0, 0, ',', ' ') }} FCFA.</small>
+        </div>
+        @endif
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Liste de mes routeurs</h5>

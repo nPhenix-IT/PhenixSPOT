@@ -327,9 +327,12 @@ input[type="radio"]:checked + .protocol-card {
             </div>
         @endif
         @if($isAtLimit)
-        <small class="text-warning d-block mt-2"
-            >Limite atteinte: les nouveaux comptes seront facturés à 500 FCFA/compte/mois.</small
-        >
+        <small class="text-warning d-block mt-2">Limite atteinte: les nouveaux comptes VPN seront facturés à {{ number_format($supplementaryVpnPrice ?? 500, 0, ',', ' ') }} FCFA/compte/mois.</small>
+        <div class="alert alert-warning mt-3 mb-0" role="alert">
+            <h6 class="alert-heading mb-1">Limite du plan atteinte</h6>
+            <p class="mb-1">Vous avez atteint la limite de compte vpn incluse dans votre forfait. Vous pouvez continuer en créant un compte vpn supplémentaire à <strong>{{ number_format($supplementaryVpnPrice ?? 500, 0, ',', ' ') }} FCFA/mois</strong>.</p>
+            <small class="text-muted">Solde wallet actuel : {{ number_format($walletBalance ?? 0, 0, ',', ' ') }} FCFA.</small>
+        </div>
         @endif
     </div>
 </div>

@@ -151,6 +151,17 @@
                ->read();
        }
    }
+   
+   public function deactivateVpnUser(string $username): void
+   {
+      $secrets = $this->client->query((new Query('/ppp/secret/print'))->where('name', $username))->read();
+      if (!empty($secrets) && isset($secrets[0]['.id'])) {
+          $this->client->query((new Query('/ppp/secret/set'))
+              ->equal('.id', $secrets[0]['.id'])
+              ->equal('disabled', 'yes'))
+              ->read();
+      }
+   }
 
    public function deleteVpnUserAndNat(string $username): void
     {

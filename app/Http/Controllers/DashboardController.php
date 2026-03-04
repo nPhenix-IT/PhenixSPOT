@@ -87,12 +87,7 @@ class DashboardController extends Controller
                 'total_sales' => round($manualNet + $onlineNet, 2),
                 'vouchers_unused' => Voucher::where('user_id', $user->id)->where('status', 'new')->count(),
                 'vouchers_used' => Voucher::where('user_id', $user->id)->where('status', 'used')->count(),
-                'vouchers_online' => DB::table('radacct')
-                    ->join('vouchers', 'vouchers.code', '=', 'radacct.username')
-                    ->where('vouchers.user_id', $user->id)
-                    ->whereNull('radacct.acctstoptime')
-                    ->distinct('radacct.username')
-                    ->count('radacct.username'),
+                'vouchers_online' => $this->countOnlineVouchersForUser($user->id),
             ],
             'charts' => [
                 'sales_evolution' => $salesEvolution,
@@ -105,6 +100,27 @@ class DashboardController extends Controller
             ],
             'latest_transactions' => $this->buildLatestTransactions($user->id, 5),
         ];
+    }
+    
+    private function countOnlineVouchersForUser(int $userId): int
+    {
+        return (int) DB::table('radacct')
+            ->whereNull('radacct.acctstoptime')
+            ->where(function ($query) {
+                $query->where('radacct.acctupdatetime', '>', now()->subDay())
+                    ->orWhere(function ($fallback) {
+                        $fallback->whereNull('radacct.acctupdatetime')
+                            ->where('radacct.acctstarttime', '>', now()->subDay());
+                    });
+            })
+            ->whereExists(function ($query) use ($userId) {
+                $query->selectRaw('1')
+                    ->from('vouchers')
+                    ->where('vouchers.user_id', $userId)
+                    ->whereRaw('LOWER(TRIM(vouchers.code)) = LOWER(TRIM(radacct.username))');
+            })
+            ->selectRaw('COUNT(DISTINCT LOWER(TRIM(radacct.username))) as aggregate')
+            ->value('aggregate');
     }
 
     /**

@@ -73,8 +73,11 @@
     <link rel="shortcut icon" href="{{ asset('assets/img/favicon/favicon.ico') }}" />
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/img/favicon/apple-touch-icon.png') }}" />
     <meta name="apple-mobile-web-app-title" content="PhenixSPOT" />
-    <link rel="manifest" href="{{ asset('assets/img/favicon/site.webmanifest') }}" />
-
+    <!--<link rel="manifest" href="{{ asset('assets/img/favicon/site.webmanifest') }}" />-->
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
   <!-- Include Styles -->
   <!-- $isFront is used to append the front layout styles only on the front layout otherwise the variable will be blank -->
   @include('layouts/sections/styles' . $isFront)
@@ -114,6 +117,16 @@
   <!-- Include Scripts -->
   <!-- $isFront is used to append the front layout scripts only on the front layout otherwise the variable will be blank -->
   @include('layouts/sections/scripts' . $isFront)
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+          console.warn('Service Worker registration failed:', error);
+        });
+      });
+    }
+  </script>
 </body>
 
 </html>

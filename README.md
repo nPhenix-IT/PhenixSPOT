@@ -26,12 +26,12 @@ Composer: v2.2 or Above
 
 Clone this repository. Run the following command:
 ```
-git clone https://github.com/nPhenix-IT/PhenixSPOT.git
+git clone https://github.com/nPhenix-IT/RADIUSSPOT.git
 ```
 
 Move to the project directory:
 ```
-cd PhenixSPOT
+cd RADIUSSPOT
 ```
 
 install dependencies using Composer
@@ -54,6 +54,19 @@ Install all node the dependencies:
 yarn
 ```
 
+Find .env.example file at root folder and copy it to .env by running below command Or also can manually copy it (if not having .env file):
+```
+cp .env.example .env
+```
+Run the following command to generate the key
+```
+php artisan key:generate
+```
+
+### **For Development Mode: Run this command**
+```
+php artisan serve && yarn dev
+```
 ### **For Production Mode: Run these commands**
 ```
 yarn build

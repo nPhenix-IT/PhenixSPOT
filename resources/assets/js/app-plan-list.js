@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(addForm).find('[name="price_annually"]').val(data.price_annually);
                 $(addForm).find('[name="features[routers]"]').val(data.features.routers);
                 $(addForm).find('[name="features[vpn_accounts]"]').val(data.features.vpn_accounts);
-                $(addForm).find('[name="features[active_users]"]').val(data.features.active_users || data.features.users || '');
+                $(addForm).find('[name="features[vouchers_connected]"]').val(data.features.vouchers_connected || data.features.active_users || '');
                 $(addForm).find('[name="features[pppoe]"]').prop('checked', !!data.features.pppoe);
                 $(addForm).find('[name="features[sales_page]"]').prop('checked', !!data.features.sales_page);
                 $(addForm).find('[name="features[advanced_reports]"]').prop('checked', !!data.features.advanced_reports);

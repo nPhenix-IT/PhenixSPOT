@@ -15,30 +15,14 @@ use Illuminate\Support\Facades\DB;
 // use Illuminate\Support\Str;
 use Yajra\DataTables\DataTables;
 use tbQuar\Facades\Quar;
+use App\Services\PlanLimitService;
+use App\Support\PlanLimits;
 
 class VoucherController extends Controller
 {
-  private function isUnlimitedValue($value): bool
+  public function __construct(private readonly PlanLimitService $planLimitService)
   {
-    if ($value === null) {
-      return false;
-    }
-
-    $normalized = strtolower(trim((string) $value));
-    return in_array($normalized, ['-1', 'illimite', 'illimité', 'unlimited', 'infini', 'infinite', '∞'], true);
-  }
-
-  private function normalizeLimit($value): int
-  {
-    if ($this->isUnlimitedValue($value)) {
-      return PHP_INT_MAX;
-    }
-
-    if (is_numeric($value)) {
-      return max(0, (int) $value);
-    }
-
-    return 0;
+    
   }
 
   public function index(Request $request)
@@ -139,15 +123,17 @@ class VoucherController extends Controller
     }
 
     $profiles = $user->profiles()->get();
-    $hasActiveSubscription = $user->hasRole(['Super-admin', 'Admin']) || ($user->subscription && $user->subscription->isActive());
+    $hasActiveSubscription = $this->planLimitService->hasActiveSubscription($user);
 
-    $planFeatures = $hasActiveSubscription ? ($user->hasRole(['Super-admin', 'Admin']) ? ['active_users' => PHP_INT_MAX] : ($user->subscription->plan->features ?? [])) : [];
-    $vouchersCount = $user->vouchers()->count();
-    $limit = $this->normalizeLimit($planFeatures['active_users'] ?? ($planFeatures['vouchers'] ?? 0));
-    $isUnlimitedLimit = $limit === PHP_INT_MAX;
-    $limitLabel = $isUnlimitedLimit ? 'Illimité' : number_format($limit, 0, ',', ' ');
+    $limits = $this->planLimitService->limits($user);
+    $usage = $this->planLimitService->usage($user);
+
+    $vouchersCount = (int) ($usage[PlanLimits::KEY_VOUCHERS_CONNECTED] ?? 0);
+    $limit = $limits[PlanLimits::KEY_VOUCHERS_CONNECTED] ?? 0;
+    $isUnlimitedLimit = $limit === null;
+    $limitLabel = $isUnlimitedLimit ? 'Illimité' : number_format((int) $limit, 0, ',', ' ');
     $usagePercent = (!$isUnlimitedLimit && $limit > 0)
-      ? min(100, ($vouchersCount / $limit) * 100)
+      ? min(100, ($vouchersCount / (int) $limit) * 100)
       : 0;
 
     return view('content.vouchers.index', compact('profiles', 'hasActiveSubscription', 'vouchersCount', 'limit', 'limitLabel', 'usagePercent', 'isUnlimitedLimit'));
@@ -163,28 +149,10 @@ class VoucherController extends Controller
     ]);
 
     $user = Auth::user();
-    $hasActiveSubscription = $user->hasRole(['Super-admin', 'Admin']) || ($user->subscription && $user->subscription->isActive());
-    if (!$hasActiveSubscription) {
+    if (!$this->planLimitService->hasActiveSubscription($user)) {
       return response()->json(['error' => 'Abonnement inactif.'], 403);
     }
-
-    $planFeatures = $user->hasRole(['Super-admin', 'Admin'])
-      ? ['active_users' => PHP_INT_MAX]
-      : ($user->subscription->plan->features ?? []);
-
-    $limit = $this->normalizeLimit($planFeatures['active_users'] ?? ($planFeatures['vouchers'] ?? 0));
-    $vouchersCount = $user->vouchers()->count();
-
-    if ($limit !== PHP_INT_MAX) {
-      if ($limit <= 0) {
-        return response()->json(['error' => 'Votre plan ne permet pas de générer des vouchers.'], 403);
-      }
-
-      if (($vouchersCount + (int) $data['quantity']) > $limit) {
-        $remaining = max(0, $limit - $vouchersCount);
-        return response()->json(['error' => "Limite de vouchers atteinte. Il vous reste {$remaining} voucher(s) disponible(s)."], 403);
-      }
-    }
+    
     $profile = Profile::where('id', $data['profile_id'])->where('user_id', $user->id)->firstOrFail();
 
     DB::transaction(function () use ($data, $user, $profile) {

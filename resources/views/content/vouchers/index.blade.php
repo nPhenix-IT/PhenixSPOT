@@ -36,7 +36,7 @@
 <div class="card mb-4">
     <div class="card-body">
         <h5 class="card-title">Utilisation de votre forfait</h5>
-        <p>Vous avez créé <strong>{{ $vouchersCount }}</strong> sur les <strong>{{ $limitLabel ?? $limit }}</strong> coupons autorisés.</p>
+        <p>Vous avez <strong>{{ $vouchersCount }}</strong> voucher(s)/coupon(s) connecté(s) sur les <strong>{{ $limitLabel ?? $limit }}</strong> autorisés par votre forfait.</p>
         @if(!($isUnlimitedLimit ?? false))
           <div class="progress"><div class="progress-bar" style="width: {{ $usagePercent ?? 0 }}%;"></div></div>
         @endif
