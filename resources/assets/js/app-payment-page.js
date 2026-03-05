@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const formatFcfa = value => `${new Intl.NumberFormat('fr-FR').format(Math.round(Number(value || 0)))} FCFA`;
 
     let originalPrice = Number($('#original-price').data('price') || 0);
+    const planId = Number($('#original-price').data('plan-id') || 0);
     let discountedBasePrice = originalPrice;
     let selectedChannel = $('input.payment-channel:checked').val() || 'moneyfusion';
 
@@ -47,7 +48,8 @@ document.addEventListener('DOMContentLoaded', function() {
             type: 'POST',
             data: {
                 coupon_code: couponCode,
-                original_price: originalPrice
+                original_price: originalPrice,
+                plan_id: planId
             },
             success: function(response) {
                 discountedBasePrice = Number(response.final_price_raw || originalPrice);

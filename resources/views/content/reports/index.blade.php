@@ -35,8 +35,8 @@
                     <i class="ti tabler-download me-1"></i> Exporter
                 </button>
                 <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{{ route('user.reports.export-excel', ['period' => $period]) }}"><i class="ti tabler-file-spreadsheet me-2"></i>Format Excel</a></li>
-                    <li><a class="dropdown-item" href="{{ route('user.reports.export-pdf', ['period' => $period]) }}"><i class="ti tabler-file-description me-2"></i>Format PDF</a></li>
+                    <li><a class="dropdown-item" href="{{ route('user.reports.export-excel', ['period' => $period, 'router_id' => $routerId, 'date_range' => $dateRange]) }}"><i class="ti tabler-file-spreadsheet me-2"></i>Format Excel</a></li>
+                    <li><a class="dropdown-item" href="{{ route('user.reports.export-pdf', ['period' => $period, 'router_id' => $routerId, 'date_range' => $dateRange]) }}"><i class="ti tabler-file-description me-2"></i>Format PDF</a></li>
                 </ul>
             </div>
         </div>
@@ -44,7 +44,7 @@
 
     <!-- Filtres Modernes (POST) -->
     <div class="filter-bar mb-4">
-        <form method="POST" action="{{ route('user.reports.index') }}" id="mainFilterForm" class="row g-3 align-items-end">
+        <form method="GET" action="{{ route('user.reports.index') }}" id="mainFilterForm" class="row g-3 align-items-end">
             @csrf
             <div class="col-lg-3">
                 <label class="form-label fw-bold small text-uppercase">Intervalle Rapide</label>
@@ -198,7 +198,7 @@
                                 <td class="text-center"><span class="badge bg-label-info">{{ $rs->sales_count }}</span></td>
                                 <td class="text-center">
                                     <div class="progress" style="height: 6px;">
-                                        <div class="progress-bar bg-success" style="width: 75%"></div>
+                                        <div class="progress-bar bg-success" style="width: {{ $rs->progress ?? 0 }}%"></div>
                                     </div>
                                 </td>
                                 <td class="text-end fw-bold text-primary">{{ number_format($rs->total_revenue, 0, ',', ' ') }} <small>FCFA</small></td>

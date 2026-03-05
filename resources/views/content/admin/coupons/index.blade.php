@@ -19,17 +19,26 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Liste des bons de réduction</h5>
-        <button class="btn btn-primary" type="button" id="add-new-coupon-btn">
-            <i class="ti ti-plus me-1"></i> Ajouter un bon
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-danger" type="button" id="bulk-delete-coupons-btn" disabled>
+                <i class="ti tabler-trash me-1"></i> Supprimer la sélection
+            </button>
+            <button class="btn btn-primary" type="button" id="add-new-coupon-btn">
+                <i class="ti tabler-plus me-1"></i> Ajouter un bon
+            </button>
+        </div>
     </div>
     <div class="card-datatable table-responsive">
         <table class="datatables-coupons table table-striped">
             <thead class="table-light">
                 <tr>
+                    <th style="width: 40px;"><input type="checkbox" class="form-check-input" id="coupon-select-all"></th>
                     <th>Code</th>
                     <th>Type</th>
                     <th>Valeur</th>
+                    <th>Validité</th>
+                    <th>Ciblage</th>
+                    <th>Usage</th>
                     <th>Statut</th>
                     <th>Actions</th>
                 </tr>
@@ -46,7 +55,19 @@
             <form id="addCouponForm">
                 <div class="modal-body">
                     <input type="hidden" name="id" id="coupon_id">
-                    <div class="mb-3"><label class="form-label">Code</label><input type="text" name="code" class="form-control" required></div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3"><label class="form-label">Code (laisser vide si auto-génération)</label><input type="text" name="code" class="form-control"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Préfixe auto</label><input type="text" name="prefix" class="form-control" placeholder="SAAS-"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Nombre à générer</label><input type="number" name="generate_count" class="form-control" min="1" value="1"></div>
+                        <div class="col-md-6 mb-3 d-flex align-items-end">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="auto_generate" value="1" id="auto_generate_coupon">
+                                <label class="form-check-label" for="auto_generate_coupon">Auto-générer les codes</label>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Type</label>
@@ -57,6 +78,31 @@
                         </div>
                         <div class="col-md-6 mb-3"><label class="form-label">Valeur</label><input type="number" name="value" class="form-control" required></div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Début validité</label><input type="datetime-local" name="starts_at" class="form-control"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Fin validité</label><input type="datetime-local" name="ends_at" class="form-control"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Utilisateur ciblé</label>
+                            <select name="user_id" class="form-select">
+                                <option value="">Tous les utilisateurs</option>
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Plan ciblé</label>
+                            <select name="plan_id" class="form-select">
+                                <option value="">Tous les plans</option>
+                                @foreach($plans as $plan)
+                                    <option value="{{ $plan->id }}">{{ $plan->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="alert alert-info py-2">Règle SaaS: un utilisateur ne peut utiliser un coupon qu'une seule fois.</div>
                     <div class="form-check form-switch mb-2">
                         <input class="form-check-input" type="checkbox" name="is_active" value="1" id="is_active_coupon" checked>
                         <label class="form-check-label" for="is_active_coupon">Activer ce bon</label>

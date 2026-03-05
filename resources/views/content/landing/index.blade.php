@@ -10,7 +10,7 @@
   <link rel="shortcut icon" href="{{ asset('assets/img/favicon/favicon.ico') }}" />
   <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/img/favicon/apple-touch-icon.png') }}" />
   <meta name="apple-mobile-web-app-title" content="PhenixSPOT" />
-  <link rel="manifest" href="{{ asset('assets/img/favicon/site.webmanifest') }}" />
+  <link rel="manifest" href="{{ asset('manifest.webmanifest') }}" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -665,9 +665,8 @@
     return is_numeric($value) ? number_format((int)$value, 0, ',', ' ') : (string)$value;
   };
 
-  // Map per tier for comparison
-  $planByTier = [];
-  foreach ($plans as $idx => $plan) $planByTier[$resolveTier($plan, $idx)] = $plan;
+  // Plans displayed in comparison (exactly what admin configured)
+  $comparisonPlans = $plans->values();
 
   // Comparison rows + icons
   $comparisonRows = [
@@ -677,8 +676,7 @@
     ['key'=>'pppoe', 'label'=>'PPPoE', 'feature'=>'pppoe', 'type'=>'bool', 'icon'=>'ti ti-plug-connected'],
     ['key'=>'vpn', 'label'=>'Comptes VPN', 'feature'=>'vpn_accounts', 'icon'=>'ti ti-shield-lock'],
     ['key'=>'users', 'label'=>'Vouchers/Coupons connectés', 'feature'=>'vouchers_connected', 'icon'=>'ti ti-users'],
-    ['key'=>'portal', 'label'=>'Portail captif / Page de vente', 'feature'=>'sale_page', 'type'=>'bool', 'icon'=>'ti ti-browser'],
-    ['key'=>'payments', 'label'=>'Paiements & Wallet', 'feature'=>'payments', 'type'=>'bool', 'icon'=>'ti ti-credit-card'],
+    ['key'=>'portal', 'label'=>'Portail captif / Page de vente', 'feature'=>'sales_page', 'type'=>'bool', 'icon'=>'ti ti-browser'],
     ['key'=>'reports', 'label'=>'Rapports & Analytics', 'feature'=>'advanced_reports', 'type'=>'bool', 'icon'=>'ti ti-chart-bar'],
     ['key'=>'support', 'label'=>'Support', 'feature'=>'support_level', 'icon'=>'ti ti-headset'],
   ];
@@ -755,7 +753,7 @@
           <div class="d-flex flex-column flex-sm-row gap-3">
             @auth
             <a href="{{ route('dashboard') }}" class="btn btn-primary btn-lg shadow-lg px-5 py-3">
-              Mon Dashboard
+              <i class="ti ti-layout-dashboard me-2"></i> Mon Dashboard
             </a>
             @else
             <a href="#pricing" class="btn btn-primary btn-lg shadow-lg px-5 py-3">
@@ -985,6 +983,15 @@
   <section id="how-it-works" class="section-pad">
     <div class="container">
       <div class="row align-items-center gy-4">
+        <div class="col-lg-6 offset-lg-1" data-reveal>
+          <!--<div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 26px;">-->
+            <img
+              src="{{ asset('assets/img/illustrations/page-misc-under.png') }}"
+              alt="Dashboard"
+              class="img-fluid animate-float"
+            >
+          <!--</div>-->
+        </div>
         <div class="col-lg-5" data-reveal>
           <span class="pill mb-3">Mise en route</span>
           <h2 class="display-6 fw-bold mb-3">De zéro à “vente en ligne” en 3 étapes.</h2>
@@ -1019,15 +1026,15 @@
           </div>
         </div>
 
-        <div class="col-lg-6 offset-lg-1" data-reveal>
-          <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 26px;">
-            <img
-              src="{{ asset('assets/img/illustrations/page-misc-under-maintenance.png') }}"
-              alt="Dashboard"
-              class="img-fluid"
-            >
-          </div>
-        </div>
+        <!--<div class="col-lg-6 offset-lg-1" data-reveal>-->
+        <!--  <div class="card border-0 shadow-lg overflow-hidden" style="border-radius: 26px;">-->
+        <!--    <img-->
+        <!--      src="{{ asset('assets/img/illustrations/page-misc-under-maintenance.png') }}"-->
+        <!--      alt="Dashboard"-->
+        <!--      class="img-fluid"-->
+        <!--    >-->
+        <!--  </div>-->
+        <!--</div>-->
       </div>
     </div>
   </section>
@@ -1042,7 +1049,7 @@
         <div class="price-toggle mx-auto">
           <span class="small fw-bold text-muted2">Facturation</span>
           <button class="toggle-btn active" type="button" data-billing="monthly">Mensuel</button>
-          <button class="toggle-btn" type="button" data-billing="yearly">Annuel <span class="ms-1 badge text-bg-success">-15%</span></button>
+          <button class="toggle-btn" type="button" data-billing="yearly">Annuel <span class="ms-1 badge text-bg-success">2 MOIS OFFERTS</span></button>
         </div>
       </div>
 
@@ -1053,13 +1060,12 @@
             $features = (array)($plan->features ?? []);
 
             $monthly = (float)($plan->price_monthly ?? 0);
-            $yearlyDb = $plan->price_yearly ?? null;
+            $yearlyDb = $plan->price_annually ?? null;
             $yearly = $yearlyDb !== null ? (float)$yearlyDb : round($monthly * 12 * 0.85);
 
             $hasHotspot  = !empty($features['hotspot']);
             $hasPppoe    = !empty($features['pppoe']);
-            $hasPayments = !empty($features['payments']);
-            $hasSalePage = !empty($features['sale_page']);
+            $hasSalePage = !empty($features['sales_page']) || !empty($features['sale_page']);
             $hasReports  = !empty($features['advanced_reports']);
 
             $planIcon = $tierIcon[$tier] ?? 'ti ti-stars';
@@ -1101,7 +1107,6 @@
 
               <li class="feature-item"><i class="ti {{ $hasHotspot ? 'ti-check text-success' : 'ti-x text-muted' }}"></i> <div><strong>Hotspot</strong> <small>& vouchers</small></div></li>
               <li class="feature-item"><i class="ti {{ $hasPppoe ? 'ti-check text-success' : 'ti-x text-muted' }}"></i> <div><strong>PPPoE</strong> <small>Abonnement</small></div></li>
-              <li class="feature-item"><i class="ti {{ $hasPayments ? 'ti-check text-success' : 'ti-x text-muted' }}"></i> <div><strong>Paiements</strong> <small>wallet</small></div></li>
               <li class="feature-item"><i class="ti {{ $hasSalePage ? 'ti-check text-success' : 'ti-x text-muted' }}"></i> <div><strong>Portail</strong> <small>vente/captif</small></div></li>
               <li class="feature-item"><i class="ti {{ $hasReports ? 'ti-check text-success' : 'ti-x text-muted' }}"></i> <div><strong>Analytics</strong> <small>rapports</small></div></li>
             </ul>
@@ -1145,7 +1150,6 @@
             <span class="chip active" data-compare-filter="all">Tout</span>
             <span class="chip" data-compare-filter="modules">Modules</span>
             <span class="chip" data-compare-filter="quotas">Quotas</span>
-            <span class="chip" data-compare-filter="billing">Paiements</span>
             <span class="chip" data-compare-filter="ops">Ops & Support</span>
           </div>
         </div>
@@ -1155,9 +1159,9 @@
             <thead>
               <tr>
                 <th class="text-start">Fonctionnalités</th>
-                <th>STARTER</th>
-                <th>PRO</th>
-                <th>ISP</th>
+                @foreach($comparisonPlans as $colPlan)
+                  <th>{{ strtoupper($colPlan->name) }}</th>
+                @endforeach
               </tr>
             </thead>
             <tbody>
@@ -1167,7 +1171,6 @@
                   $group = match($row['key']) {
                     'routers', 'users', 'vpn' => 'quotas',
                     'hotspot', 'pppoe', 'portal' => 'modules',
-                    'payments' => 'billing',
                     'reports', 'support' => 'ops',
                     default => 'all',
                   };
@@ -1178,9 +1181,8 @@
                     <span>{{ $row['label'] }}</span>
                   </td>
 
-                  @foreach($tierOrder as $tier)
+                  @foreach($comparisonPlans as $tierPlan)
                     @php
-                      $tierPlan = $planByTier[$tier] ?? null;
                       $tierFeatures = (array)($tierPlan?->features ?? []);
                       $type = $row['type'] ?? 'text';
 
@@ -1189,7 +1191,10 @@
                       } elseif ($type === 'price') {
                         $display = number_format((float)($tierPlan->price_monthly ?? 0), 0, ',', ' ') . ' FCFA';
                       } elseif ($type === 'bool') {
-                        $display = !empty($tierFeatures[$row['feature']]);
+                        $featureKey = $row['feature'] ?? '';
+                        $display = $featureKey === 'sales_page'
+                          ? !empty($tierFeatures['sales_page']) || !empty($tierFeatures['sale_page'])
+                          : !empty($tierFeatures[$featureKey]);
                       } else {
                         $display = ($row['feature'] ?? '') === 'vouchers_connected'
                           ? $formatLimit($tierFeatures['vouchers_connected'] ?? ($tierFeatures['active_users'] ?? null))

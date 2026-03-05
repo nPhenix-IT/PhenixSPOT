@@ -37,28 +37,28 @@
       "badge": "Bientôt",
       "icon": "menu-icon icon-base ti tabler-brand-tidal",
       "icon_color": "text-primary",
-      "slug": "gestion-hotspot",
+      "slug": "gestion-pppoe",
       "submenu": [
         {
-          "url": "#",
+          "url": "/pppoe/pools",
           "icon": "menu-icon icon-base ti tabler-topology-bus",
           "icon_color": "text-primary",
           "name": "Pool PPPoE",
-          "slug": "#"
+          "slug": "user.pppoe.pools.index"
         },
         {
-          "url": "#",
+          "url": "/pppoe/profiles",
           "icon": "menu-icon icon-base ti tabler-users-group",
           "icon_color": "text-primary",
           "name": "Profils",
-          "slug": "#"
+          "slug": "user.pppoe.profiles.index"
         },
         {
-          "url": "#",
+          "url": "/pppoe/accounts",
           "icon": "menu-icon icon-base ti tabler-users-group",
           "icon_color": "text-primary",
           "name": "Compte PPPoE",
-          "slug": "#"
+          "slug": "user.pppoe.accounts.index"
         }
       ]
     },
@@ -100,12 +100,16 @@
       "slug": "user.wallet.index"
     },
     {
-      "url": "#",
+      "url": "/reports",
       "badge": "Bientôt",
       "icon": "menu-icon icon-base ti tabler-chart-bar",
       "icon_color": "text-primary",
       "name": "Reporting & Exports",
-      "slug": "user.reports.index"
+      "slug": "user.reports.index",
+      "roles": [
+        "Super-admin",
+        "Admin"
+      ]
     },
     {
       "url": "/payment-gateways",

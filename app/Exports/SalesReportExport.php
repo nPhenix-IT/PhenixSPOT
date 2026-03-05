@@ -2,36 +2,38 @@
 
 namespace App\Exports;
 
-use Illuminate\Database\Eloquent\Builder;
+// use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Illuminate\Support\Collection;
 
 class SalesReportExport implements FromCollection, WithHeadings, WithMapping
 {
-    public function __construct(private Builder $query)
+    public function __construct(private Collection $rows)
     {
         //
     }
 
-    public function collection()
+    public function collection(): Collection
     {
-        return $this->query->with(['router', 'profile'])->orderByDesc('created_at')->get();
+        return $this->rows->sortByDesc('date')->values();
     }
 
     public function headings(): array
     {
-        return ['Date', 'Routeur', 'Profil', 'Montant', 'Client'];
+        return ['Date', 'Routeur', 'Profil', 'Montant', 'Client', 'Source'];
     }
 
-    public function map($transaction): array
+    public function map($row): array
     {
         return [
-            $transaction->created_at?->format('d/m/Y H:i'),
-            $transaction->router?->name ?? 'Non assigné',
-            $transaction->profile?->name ?? 'Profil inconnu',
-            number_format($transaction->total_price, 0, ',', ' ') . ' FCFA',
-            $transaction->customer_number,
+            $row['date']?->format('d/m/Y H:i'),
+            $row['router_label'] ?? 'Non assigné',
+            $row['profile_label'] ?? 'Profil inconnu',
+            number_format((float) ($row['amount'] ?? 0), 0, ',', ' ') . ' FCFA',
+            $row['customer'] ?? '-',
+            $row['source'] ?? '-',
         ];
     }
 }

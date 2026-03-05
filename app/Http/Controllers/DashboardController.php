@@ -55,7 +55,7 @@ class DashboardController extends Controller
     {
         $routerId = $request->integer('router_id');
         $saleTypeFilter = (string) $request->input('sale_type', 'all');
-        $period = (string) $request->input('period', 'week'); // day, week, month
+        $period = (string) $request->input('period', 'month'); // day, week, month, year
 
         // Calcul des revenus globaux pour les KPIs
         $manualNet = (float) Voucher::query()
@@ -78,8 +78,9 @@ class DashboardController extends Controller
         $salesTypeEvolution = $this->buildSalesTypeEvolution($user->id, $saleTypeFilter);
         $routerPerformance = $this->buildRouterPerformance($user->id);
 
-        // ✅ NEW (USER): widget Top Zone (sur la même période que evolution)
+        // ✅ NEW (USER): widget Top Zone + dimension revenus par zone routeur
         $topZone = $this->buildUserTopZone($user->id, $routerId, $period);
+        $zoneBreakdown = $this->buildUserZonesBreakdown($user->id, $routerId, $period);
 
         return [
             'role' => 'user',
@@ -97,6 +98,7 @@ class DashboardController extends Controller
             // ✅ NEW (USER)
             'widgets' => [
                 'top_zone' => $topZone,
+                'zones_breakdown' => $zoneBreakdown,
             ],
             'latest_transactions' => $this->buildLatestTransactions($user->id, 5),
         ];
@@ -163,7 +165,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Construit l'évolution des revenus selon la période choisie (Jour/Semaine/Mois).
+     * Construit l'évolution des revenus selon la période choisie (Jour/Semaine/Mois/Année).
      */
     private function buildSalesEvolution(int $userId, ?int $routerId, string $period): array
     {
@@ -171,6 +173,7 @@ class DashboardController extends Controller
             'day' => 1,
             'week' => 7,
             'month' => 30,
+            'year' => 365,
             default => 14
         };
 
@@ -367,6 +370,77 @@ class DashboardController extends Controller
             'share' => $share,
         ];
     }
+    
+    /**
+     * Dimension analytique "par zone routeur" pour la période sélectionnée.
+     */
+    private function buildUserZonesBreakdown(int $userId, ?int $routerId, string $period, int $limit = 5): array
+    {
+        $daysCount = match($period) {
+            'day' => 1,
+            'week' => 7,
+            'month' => 30,
+            'year' => 365,
+            default => 14
+        };
+        $startDate = now()->subDays($daysCount - 1)->startOfDay();
+
+        $zoneCol = null;
+        foreach (['zone', 'area', 'city', 'location', 'site'] as $candidate) {
+            if (Schema::hasColumn('routers', $candidate)) {
+                $zoneCol = $candidate;
+                break;
+            }
+        }
+
+        $groupSelect = $zoneCol ? "routers.$zoneCol" : 'routers.name';
+
+        $manualRows = Voucher::query()
+            ->join('profiles', 'profiles.id', '=', 'vouchers.profile_id')
+            ->join('routers', 'routers.id', '=', 'vouchers.activated_router_id')
+            ->where('vouchers.user_id', $userId)
+            ->where('vouchers.status', 'used')
+            ->where('vouchers.used_at', '>=', $startDate)
+            ->when($routerId, fn($q) => $q->where('vouchers.activated_router_id', $routerId))
+            ->selectRaw("$groupSelect as grp, SUM(profiles.price) as total")
+            ->groupBy('grp')
+            ->get();
+
+        $onlineRows = PendingTransaction::query()
+            ->join('routers', 'routers.id', '=', 'pending_transactions.router_id')
+            ->where('pending_transactions.user_id', $userId)
+            ->where('pending_transactions.status', 'completed')
+            ->where('pending_transactions.created_at', '>=', $startDate)
+            ->when($routerId, fn($q) => $q->where('pending_transactions.router_id', $routerId))
+            ->selectRaw("$groupSelect as grp, SUM(pending_transactions.total_price - COALESCE(pending_transactions.commission_amount,0)) as total")
+            ->groupBy('grp')
+            ->get();
+
+        $merged = [];
+        foreach ($manualRows as $row) {
+            $key = (string)($row->grp ?? 'N/A');
+            $merged[$key] = (float)($merged[$key] ?? 0) + (float)($row->total ?? 0);
+        }
+        foreach ($onlineRows as $row) {
+            $key = (string)($row->grp ?? 'N/A');
+            $merged[$key] = (float)($merged[$key] ?? 0) + (float)($row->total ?? 0);
+        }
+
+        if (empty($merged)) {
+            return [];
+        }
+
+        arsort($merged);
+        $total = array_sum($merged);
+
+        $top = array_slice($merged, 0, $limit, true);
+
+        return collect($top)->map(fn($amount, $name) => [
+            'name' => $name,
+            'amount' => round((float)$amount, 2),
+            'share' => $total > 0 ? round(((float)$amount / $total) * 100, 1) : 0.0,
+        ])->values()->all();
+    }
 
     /**
      * ===== ADMIN =====
@@ -374,13 +448,14 @@ class DashboardController extends Controller
      */
     private function getAdminStats(Request $request): array
     {
-        $period = (string)$request->input('period', 'month'); // day|week|month
-        $trendPeriod = (string)$request->input('trend_period', 'week'); // day|week|month
+        $period = (string)$request->input('period', 'month'); // day|week|month|year
+        $trendPeriod = (string)$request->input('trend_period', 'month'); // day|week|month|year
 
         // KPI: Revenu réseau (net ventes online)
         $start = match($period){
             'day' => now()->startOfDay(),
             'week' => now()->startOfWeek(),
+            'year' => now()->startOfYear(),
             default => now()->startOfMonth()
         };
 
@@ -548,6 +623,7 @@ class DashboardController extends Controller
             'day' => 1,
             'week' => 7,
             'month' => 30,
+            'year' => 365,
             default => 14
         };
 
@@ -577,6 +653,7 @@ class DashboardController extends Controller
             'day' => 1,
             'week' => 7,
             'month' => 30,
+            'year' => 365,
             default => 14
         };
 

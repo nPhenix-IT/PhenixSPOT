@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\CouponUsage;
 use App\Models\PendingVpnAccountPayment;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -178,6 +179,7 @@ class PlanPaymentController extends Controller
             $payload = is_array($locked->payload) ? $locked->payload : [];
             $planId = (int) ($payload['plan_id'] ?? 0);
             $duration = (string) ($payload['duration'] ?? 'monthly');
+            $couponId = (int) ($payload['coupon_id'] ?? 0);
 
             if ($planId <= 0) {
                 return false;
@@ -201,6 +203,20 @@ class PlanPaymentController extends Controller
 
             $locked->update(['status' => 'completed']);
             $pending->forceFill(['status' => 'completed']);
+            
+            if ($couponId > 0) {
+                CouponUsage::firstOrCreate(
+                    [
+                        'coupon_id' => $couponId,
+                        'user_id' => (int) $locked->user_id,
+                    ],
+                    [
+                        'plan_id' => $planId,
+                        'transaction_id' => (string) $locked->transaction_id,
+                        'used_at' => now(),
+                    ]
+                );
+            }
 
             $planName = Plan::whereKey($planId)->value('name') ?? 'Forfait SaaS';
             $notificationPayload = [

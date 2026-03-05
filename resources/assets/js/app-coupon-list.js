@@ -4,18 +4,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var dt_coupon_table = $('.datatables-coupons');
     var dt_coupon;
+    const bulkDeleteBtn = $('#bulk-delete-coupons-btn');
+    const selectAllCheckbox = $('#coupon-select-all');
+
+    const selectedCouponIds = () => $('.coupon-select:checked').map(function() { return Number($(this).val()); }).get();
+    const refreshBulkDeleteState = () => {
+        bulkDeleteBtn.prop('disabled', selectedCouponIds().length === 0);
+    };
 
     if (dt_coupon_table.length) {
         dt_coupon = dt_coupon_table.DataTable({
             processing: true, serverSide: true,
             ajax: { url: '/admin/coupons' },
             columns: [
+                { data: 'select', name: 'select', orderable: false, searchable: false },
                 { data: 'code', name: 'code' },
                 { data: 'type', name: 'type' },
                 { data: 'value_formatted', name: 'value' },
+                { data: 'validity', name: 'validity', orderable: false, searchable: false },
+                { data: 'scope', name: 'scope', orderable: false, searchable: false },
+                { data: 'usage', name: 'usage', orderable: false, searchable: false },
                 { data: 'status', name: 'status' },
                 { data: 'action', name: 'action', orderable: false, searchable: false }
             ],
+            drawCallback: function() {
+                selectAllCheckbox.prop('checked', false);
+                refreshBulkDeleteState();
+            }
         });
     }
 
@@ -62,7 +77,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 $(addForm).find('[name="code"]').val(data.code);
                 $(addForm).find('[name="type"]').val(data.type);
                 $(addForm).find('[name="value"]').val(data.value);
+                $(addForm).find('[name="starts_at"]').val(data.starts_at ? data.starts_at.replace(' ', 'T').slice(0,16) : '');
+                $(addForm).find('[name="ends_at"]').val(data.ends_at ? data.ends_at.replace(' ', 'T').slice(0,16) : '');
+                $(addForm).find('[name="user_id"]').val(data.user_id || '');
+                $(addForm).find('[name="plan_id"]').val(data.plan_id || '');
                 $(addForm).find('[name="is_active"]').prop('checked', data.is_active);
+                $(addForm).find('[name="auto_generate"]').prop('checked', false);
+                $(addForm).find('[name="generate_count"]').val(1);
+                $(addForm).find('[name="prefix"]').val('');
                 new bootstrap.Modal(addModal).show();
             });
         });
@@ -82,6 +104,45 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                 }
+            });
+        });
+
+        dt_coupon_table.on('change', '.coupon-select', function() {
+            refreshBulkDeleteState();
+        });
+
+        selectAllCheckbox.on('change', function() {
+            $('.coupon-select').prop('checked', this.checked);
+            refreshBulkDeleteState();
+        });
+
+        bulkDeleteBtn.on('click', function() {
+            const ids = selectedCouponIds();
+            if (!ids.length) return;
+
+            Swal.fire({
+                title: 'Supprimer les coupons sélectionnés ?',
+                text: `Vous allez supprimer ${ids.length} coupon(s).`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Oui, supprimer',
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+
+                $.ajax({
+                    url: '/admin/coupons/bulk-delete',
+                    type: 'DELETE',
+                    data: { ids },
+                    success: function(response) {
+                        if (dt_coupon) dt_coupon.ajax.reload();
+                        selectAllCheckbox.prop('checked', false);
+                        refreshBulkDeleteState();
+                        Swal.fire({ icon: 'success', title: 'Succès', text: response.success, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+                    },
+                    error: function() {
+                        Swal.fire({ icon: 'error', title: 'Erreur', text: 'Suppression groupée impossible.' });
+                    }
+                });
             });
         });
     }

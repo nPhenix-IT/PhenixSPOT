@@ -60,14 +60,27 @@ class PlanController extends Controller
 
     $payload['features'] = $features;
 
-    return response()->json($payload);
+    return response()
+      ->json($payload)
+      ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+      ->header('Pragma', 'no-cache');
   }
 
   public function update(Request $request, Plan $plan)
   {
     $validated = $this->validatePlan($request, $plan->id);
     $validated['slug'] = Str::slug($validated['name']);
-    $plan->update($validated);
+
+    $plan->name = $validated['name'];
+    $plan->slug = $validated['slug'];
+    $plan->description = $validated['description'] ?? null;
+    $plan->price_monthly = $validated['price_monthly'];
+    $plan->price_annually = $validated['price_annually'];
+    $plan->features = $validated['features'];
+    $plan->is_active = $validated['is_active'];
+    $plan->trial_enabled = $validated['trial_enabled'];
+    $plan->trial_days = $validated['trial_days'];
+    $plan->save();
 
     return response()->json(['success' => 'Forfait mis à jour avec succès.']);
   }
@@ -105,6 +118,7 @@ class PlanController extends Controller
     // inchangé
     $validated['features']['hotspot'] = true;
     $validated['features']['vouchers'] = true;
+
 
     unset($validated['features']['active_users']);
     $validated['is_active'] = $request->has('is_active');

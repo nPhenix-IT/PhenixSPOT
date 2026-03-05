@@ -30,11 +30,11 @@
     <tbody>
       @foreach($sales as $sale)
         <tr>
-          <td>{{ $sale->created_at?->format('d/m/Y H:i') }}</td>
-          <td>{{ $sale->router?->name ?? 'Non assigné' }}</td>
-          <td>{{ $sale->profile?->name ?? 'Profil inconnu' }}</td>
-          <td class="text-end">{{ number_format($sale->total_price, 0, ',', ' ') }} FCFA</td>
-          <td>{{ $sale->customer_number }}</td>
+          <td>{{ $sale['date']?->format('d/m/Y H:i') }}</td>
+          <td>{{ $sale['router_label'] ?? 'Non assigné' }}</td>
+          <td>{{ $sale['profile_label'] ?? 'Profil inconnu' }}</td>
+          <td class="text-end">{{ number_format($sale['amount'], 0, ',', ' ') }} FCFA</td>
+          <td>{{ $sale['customer'] ?? '-'  }}</td>
         </tr>
       @endforeach
     </tbody>

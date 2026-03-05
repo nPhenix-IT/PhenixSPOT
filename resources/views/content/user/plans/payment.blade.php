@@ -28,7 +28,7 @@
         <div class="border-top border-bottom py-3 mb-3">
             <div class="d-flex justify-content-between mb-2">
                 <span>{{ strtoupper($plan->name) }} ({{ $duration === 'annually' ? 'Annuel' : 'Mensuel' }})</span>
-                <strong id="original-price" data-price="{{ $price }}">{{ number_format($price, 0, ',', ' ') }} FCFA</strong>
+                <strong id="original-price" data-price="{{ $price }}" data-plan-id="{{ $plan->id }}">{{ number_format($price, 0, ',', ' ') }} FCFA</strong>
             </div>
             <div id="discount-row" class="d-flex justify-content-between text-success" style="display:none;">
                 <span>Réduction</span>

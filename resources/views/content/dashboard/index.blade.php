@@ -87,9 +87,10 @@ body { background-color: var(--dash-bg); }
             </div>
             <div class="d-flex gap-2">
               <select id="evolutionPeriod" class="chart-filter-select" onchange="loadStats()">
-                <option value="week">Semaine</option>
-                <option value="month">Mois</option>
                 <option value="day">Aujourd'hui</option>
+                <option value="week">Semaine</option>
+                <option value="month" selected>Mois</option>
+                <option value="year">Année</option>
               </select>
             </div>
           </div>
@@ -108,9 +109,10 @@ body { background-color: var(--dash-bg); }
             </div>
             <div class="d-flex gap-2">
               <select id="feesTrendPeriod" class="chart-filter-select" onchange="loadStats()">
-                <option value="week">Semaine</option>
-                <option value="month">Mois</option>
                 <option value="day">Aujourd'hui</option>
+                <option value="week">Semaine</option>
+                <option value="month" selected>Mois</option>
+                <option value="year">Année</option>
               </select>
             </div>
           </div>
@@ -131,9 +133,10 @@ body { background-color: var(--dash-bg); }
             </div>
             <div class="d-flex gap-2">
               <select id="evolutionPeriod" class="chart-filter-select" onchange="loadStats()">
-                <option value="week">Semaine</option>
-                <option value="month">Mois</option>
                 <option value="day">Aujourd'hui</option>
+                <option value="week">Semaine</option>
+                <option value="month" selected>Mois</option>
+                <option value="year">Année</option>
               </select>
             </div>
           </div>
@@ -186,6 +189,8 @@ body { background-color: var(--dash-bg); }
             <div class="text-muted small mt-3" id="topZoneHint">
               Basé sur la période sélectionnée.
             </div>
+            
+            <div class="mt-3" id="zoneBreakdownList"></div>
           </div>
         </div>
       </div>
@@ -300,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
     params.append('period', document.getElementById('evolutionPeriod')?.value || 'month');
 
     if (isAdmin) {
-      params.append('trend_period', document.getElementById('feesTrendPeriod')?.value || 'week');
+      params.append('trend_period', document.getElementById('feesTrendPeriod')?.value || 'month');
     } else {
       params.append('router_id', document.getElementById('routerFilterGlobal').value);
       params.append('sale_type', document.getElementById('saleTypeFilterGlobal').value);
@@ -463,6 +468,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
 
+      const zoneBreakdownEl = document.getElementById('zoneBreakdownList');
+      const zoneRows = (data.widgets && Array.isArray(data.widgets.zones_breakdown))
+        ? data.widgets.zones_breakdown
+        : [];
+      if (zoneBreakdownEl) {
+        zoneBreakdownEl.innerHTML = zoneRows.length
+          ? zoneRows.map((z) => `
+            <div class="mb-2">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small text-muted text-truncate" style="max-width: 68%;">${z.name}</span>
+                <span class="small fw-semibold">${formatter.format(Number(z.amount || 0))}</span>
+              </div>
+              <div class="progress" style="height:6px; border-radius:999px;">
+                <div class="progress-bar" role="progressbar" style="width:${Math.max(0, Math.min(100, Number(z.share || 0)))}%" aria-valuenow="${Math.max(0, Math.min(100, Number(z.share || 0)))}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+          `).join('')
+          : '<div class="small text-muted">Aucune donnée zone sur la période.</div>';
+      }
+      
       // 4. Router Performance
       const rPerf = data.charts.router_performance;
       if(chartRouter) chartRouter.destroy();

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
+use App\Models\CouponUsage;
 use App\Models\PendingVpnAccountPayment;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -40,12 +41,17 @@ class PricingController extends Controller
         $data = $request->validate([
             'coupon_code' => 'required|string',
             'original_price' => 'required|numeric|min:0',
+            'plan_id' => 'required|integer|exists:plans,id',
         ]);
 
-        $coupon = Coupon::where('code', $data['coupon_code'])->where('is_active', true)->first();
+        $coupon = $this->findEligibleCoupon(
+            $data['coupon_code'],
+            (int) Auth::id(),
+            (int) $data['plan_id']
+        );
 
         if (!$coupon) {
-            return response()->json(['error' => 'Code promo invalide ou expiré.'], 404);
+            return response()->json(['error' => 'Code promo invalide, expiré, non éligible au plan/utilisateur, ou déjà utilisé.'], 404);
         }
         
         $originalPrice = (float) $data['original_price'];
@@ -82,7 +88,15 @@ class PricingController extends Controller
 
         $user = Auth::user();
         $basePrice = $duration === 'annually' ? (float) $plan->price_annually : (float) $plan->price_monthly;
-        $discountedPrice = $this->resolveDiscountedPrice($basePrice, $data['coupon_code'] ?? null, $data['final_price'] ?? null);
+        $coupon = $this->findEligibleCoupon($data['coupon_code'] ?? null, (int) $user->id, (int) $plan->id);
+        if (!empty($data['coupon_code']) && !$coupon) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le coupon est invalide, expiré, non éligible ou déjà utilisé.',
+            ], 422);
+        }
+
+        $discountedPrice = $this->resolveDiscountedPrice($basePrice, $coupon, $data['final_price'] ?? null);
 
         $moneyfusionFeePercent = (float) config('fees.moneyfusion_payin_percent', 3);
         $feeAmount = $data['payment_channel'] === 'moneyfusion'
@@ -93,6 +107,7 @@ class PricingController extends Controller
 
         if ($totalPayable <= 0) {
             $this->activateSubscription($user->id, $plan->id, $duration);
+            $this->consumeCoupon($coupon, (int) $user->id, (int) $plan->id, 'FREE-' . Str::upper(Str::random(8)));
 
             return response()->json([
                 'success' => true,
@@ -103,13 +118,13 @@ class PricingController extends Controller
         }
 
         if ($data['payment_channel'] === 'wallet') {
-            return $this->checkoutWithWallet($user->id, $plan, $duration, $discountedPrice, $feeAmount, $totalPayable);
+            return $this->checkoutWithWallet($user->id, $plan, $duration, $discountedPrice, $feeAmount, $totalPayable, $coupon);
         }
 
-        return $this->checkoutWithMoneyFusion($user->id, $plan, $duration, $discountedPrice, $feeAmount, $totalPayable);
+        return $this->checkoutWithMoneyFusion($user->id, $plan, $duration, $discountedPrice, $feeAmount, $totalPayable, $coupon);
     }
 
-    private function checkoutWithWallet(int $userId, Plan $plan, string $duration, float $subtotal, float $feeAmount, float $totalPayable)
+    private function checkoutWithWallet(int $userId, Plan $plan, string $duration, float $subtotal, float $feeAmount, float $totalPayable, ?Coupon $coupon = null)
     {
         $reference = 'WALLET-PLAN-' . Str::upper(Str::random(8));
         $notificationPayload = null;
@@ -137,6 +152,7 @@ class PricingController extends Controller
             ]);
 
             $subscription = $this->activateSubscription($user->id, $plan->id, $duration);
+            $this->consumeCoupon($coupon, (int) $user->id, (int) $plan->id, $reference);
 
             $notificationPayload = [
                 'user' => $user,
@@ -171,7 +187,7 @@ class PricingController extends Controller
         ]);
     }
 
-    private function checkoutWithMoneyFusion(int $userId, Plan $plan, string $duration, float $subtotal, float $feeAmount, float $totalPayable)
+    private function checkoutWithMoneyFusion(int $userId, Plan $plan, string $duration, float $subtotal, float $feeAmount, float $totalPayable, ?Coupon $coupon = null)
     {
         $user = \App\Models\User::findOrFail($userId);
         $transactionId = 'PLAN-' . Str::upper(Str::random(10));
@@ -188,6 +204,7 @@ class PricingController extends Controller
                 'subtotal' => $subtotal,
                 'fee_amount' => $feeAmount,
                 'total_payable' => $totalPayable,
+                'coupon_id' => $coupon?->id,
             ],
             'status' => 'pending',
         ]);
@@ -237,14 +254,8 @@ class PricingController extends Controller
         }
     }
 
-    private function resolveDiscountedPrice(float $basePrice, ?string $couponCode, $clientFinalPrice): float
+    private function resolveDiscountedPrice(float $basePrice, ?Coupon $coupon, $clientFinalPrice): float
     {
-        $couponCode = trim((string) $couponCode);
-        if ($couponCode === '') {
-            return $basePrice;
-        }
-
-        $coupon = Coupon::where('code', $couponCode)->where('is_active', true)->first();
         if (!$coupon) {
             return $basePrice;
         }
@@ -261,6 +272,59 @@ class PricingController extends Controller
         }
 
         return max(0, $basePrice - $discount);
+    }
+    
+    private function findEligibleCoupon(?string $code, int $userId, int $planId): ?Coupon
+    {
+        $couponCode = trim((string) $code);
+        if ($couponCode === '') {
+            return null;
+        }
+
+        $coupon = Coupon::where('code', $couponCode)->where('is_active', true)->first();
+        if (!$coupon) {
+            return null;
+        }
+
+        $now = now();
+        if ($coupon->starts_at && $coupon->starts_at->gt($now)) {
+            return null;
+        }
+        if ($coupon->ends_at && $coupon->ends_at->lt($now)) {
+            return null;
+        }
+
+        if ($coupon->user_id && (int) $coupon->user_id !== $userId) {
+            return null;
+        }
+        if ($coupon->plan_id && (int) $coupon->plan_id !== $planId) {
+            return null;
+        }
+
+        if (CouponUsage::where('coupon_id', $coupon->id)->where('user_id', $userId)->exists()) {
+            return null;
+        }
+
+        return $coupon;
+    }
+
+    private function consumeCoupon(?Coupon $coupon, int $userId, int $planId, ?string $transactionId = null): void
+    {
+        if (!$coupon) {
+            return;
+        }
+
+        CouponUsage::firstOrCreate(
+            [
+                'coupon_id' => $coupon->id,
+                'user_id' => $userId,
+            ],
+            [
+                'plan_id' => $planId,
+                'transaction_id' => $transactionId,
+                'used_at' => now(),
+            ]
+        );
     }
 
     private function activateSubscription(int $userId, int $planId, string $duration): Subscription

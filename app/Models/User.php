@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\PppoeAccount;
+use App\Models\PppoeProfile;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -30,8 +32,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'phone_number',
         'is_active',
+        'phone_number',
         'country_code',
         'trial_used_at',
         'sms_enabled',
@@ -118,7 +120,16 @@ class User extends Authenticatable
     {
         return $this->hasMany(VpnAccount::class);
     }
-    
+
+    public function pppoeProfiles()
+    {
+        return $this->hasMany(PppoeProfile::class);
+    }
+
+    public function pppoeAccounts()
+    {
+        return $this->hasMany(PppoeAccount::class);
+    }
 
     public function salePageSetting()
     {

@@ -14,6 +14,7 @@ use App\Http\Controllers\User\ProfileController;
 use App\Http\Controllers\User\UserProfileController;
 use App\Http\Controllers\User\SalePageController;
 use App\Http\Controllers\User\ReportController;
+use App\Http\Controllers\User\PppoeController;
 
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\CouponController;
@@ -127,9 +128,21 @@ Route::middleware(['auth', 'active.user'])->name('user.')->group(function () {
     Route::get('sales-page/download-login-template', [SalePageController::class, 'downloadLoginTemplate'])->name('sales-page.download-login-template');
     Route::get('sales-page/install-command', [SalePageController::class, 'loginTemplateInstallCommand'])->name('sales-page.install-command');
     Route::get('sales-page/login-template-preview', [SalePageController::class, 'previewLoginTemplate'])->name('sales-page.login-template-preview');
-    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    
+    Route::match(['get', 'post'], 'reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export-excel', [ReportController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
+    
+    Route::get('pppoe', [PppoeController::class, 'index'])->name('pppoe.index');
+    Route::get('pppoe/pools', [PppoeController::class, 'pools'])->name('pppoe.pools.index');
+    Route::get('pppoe/profiles', [PppoeController::class, 'profiles'])->name('pppoe.profiles.index');
+    Route::get('pppoe/accounts', [PppoeController::class, 'accounts'])->name('pppoe.accounts.index');
+    Route::post('pppoe/profiles', [PppoeController::class, 'storeProfile'])->name('pppoe.profiles.store');
+    Route::post('pppoe/accounts', [PppoeController::class, 'storeAccount'])->name('pppoe.accounts.store');
+    Route::put('pppoe/accounts/{account}', [PppoeController::class, 'updateAccount'])->name('pppoe.accounts.update');
+    Route::post('pppoe/accounts/{account}/toggle', [PppoeController::class, 'toggleAccount'])->name('pppoe.accounts.toggle');
+    Route::delete('pppoe/accounts/{account}', [PppoeController::class, 'destroyAccount'])->name('pppoe.accounts.destroy');
+    
     Route::get('/routers/{router}/radius/install-command', [RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
     Route::post('routers/test-api', [RouterController::class, 'testApi'])->name('routers.test-api');
     Route::get('routers/wireguard/next-ip', [RouterController::class, 'suggestWireguardIp'])->name('routers.wireguard.next-ip');
@@ -138,8 +151,11 @@ Route::middleware(['auth', 'active.user'])->name('user.')->group(function () {
 
 // Routes Admin
 Route::middleware(['auth', 'active.user', 'role:Super-admin|Admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::resource('plans', PlanController::class);
-    Route::resource('coupons', CouponController::class);
+    Route::resource('plans', PlanController::class)->except(['show']);
+    Route::delete('coupons/bulk-delete', [CouponController::class, 'bulkDestroy'])->name('coupons.bulk-destroy');
+    Route::resource('coupons', CouponController::class)->except(['show']);
+    Route::delete('coupons/bulk-delete', [CouponController::class, 'bulkDestroy'])->name('coupons.bulk-destroy');
+    Route::resource('coupons', CouponController::class)->except(['show']);
     
     Route::resource('vpn-servers', VpnServerController::class);
     Route::post('vpn-servers/wireguard', [VpnServerController::class, 'storeWireguard'])->name('vpn-servers.store-wireguard');

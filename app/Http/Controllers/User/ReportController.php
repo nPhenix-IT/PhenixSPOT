@@ -2,165 +2,162 @@
 
 namespace App\Http\Controllers\User;
 
+use App\Exports\SalesReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\PendingTransaction;
 use App\Models\Router;
-use App\Models\Profile;
-use App\Exports\SalesReportExport;
+use App\Models\Voucher;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 use Maatwebsite\Excel\Facades\Excel;
-use Carbon\Carbon;
 
 class ReportController extends Controller
 {
     /**
-     * Gère l'affichage du Dashboard avec filtrage par POST pour garder l'URL propre.
+     * Affiche la page rapports avec dataset consolidé (online + vouchers utilisés).
      */
     public function index(Request $request)
     {
         $user = Auth::user();
-        
-        // Récupération des filtres
-        $routerId = $request->input('router_id');
-        $period = $request->input('period', 'month');
-        $dateRange = $request->input('date_range');
 
-        // Résolution de la plage de dates (Calendrier ou Période rapide)
-        [$startDate, $endDate] = $this->resolveDates($period, $dateRange);
+        if ($request->isMethod('post')) {
+            Session::put('reports.filters', [
+                'router_id' => $request->input('router_id'),
+                'period' => $request->input('period', 'month'),
+                'date_range' => $request->input('date_range'),
+            ]);
 
-        // Liste des routeurs pour le filtre
-        $routers = Router::where('user_id', $user->id)->get();
-
-        // Requête de base pour les transactions complétées
-        $query = PendingTransaction::query()
-            ->where('pending_transactions.user_id', $user->id)
-            ->where('pending_transactions.status', 'completed')
-            ->whereBetween('pending_transactions.created_at', [$startDate, $endDate]);
-        
-        if ($routerId) {
-            $query->where('pending_transactions.router_id', $routerId);
+            return redirect()->route('user.reports.index');
         }
 
-        // 1. KPI Totaux
+        $savedFilters = Session::get('reports.filters', []);
+        $routerId = $savedFilters['router_id'] ?? null;
+        $period = $savedFilters['period'] ?? 'month';
+        $dateRange = $savedFilters['date_range'] ?? null;
+
+        [$startDate, $endDate] = $this->resolveDates($period, $dateRange);
+
+        $routers = Router::where('user_id', $user->id)->get();
+        $selectedRouter = $routerId ? $routers->firstWhere('id', (int) $routerId) : null;
+        $selectedRouterName = $selectedRouter?->name;
+
+        $sales = $this->buildSalesDataset((int) $user->id, $startDate, $endDate, $routerId, $selectedRouterName);
+
         $totals = [
-            'sales' => (clone $query)->count(),
-            'amount' => (clone $query)->sum('total_price'),
+            'sales' => $sales->count(),
+            'amount' => (float) $sales->sum('amount'),
         ];
 
-        // 2. Tendance pour ApexCharts
         $diffDays = $startDate->diffInDays($endDate);
-        $groupFormat = $diffDays <= 1 ? '%H:00' : ($diffDays > 365 ? '%Y-%m' : '%Y-%m-%d');
+        $groupFormat = $diffDays <= 1 ? 'Y-m-d H:00' : ($diffDays > 365 ? 'Y-m' : 'Y-m-d');
 
-        $salesTrend = (clone $query)
-            ->select([
-                DB::raw("DATE_FORMAT(created_at, '$groupFormat') as date_label"),
-                DB::raw('SUM(total_price) as amount')
+        $salesTrend = $sales
+            ->groupBy(fn (array $row) => Carbon::parse($row['date'])->format($groupFormat))
+            ->map(fn (Collection $rows, string $label) => (object) [
+                'date_label' => $label,
+                'amount' => (float) $rows->sum('amount'),
             ])
-            ->groupBy('date_label')
-            ->orderBy('created_at', 'ASC')
-            ->get();
+            ->sortBy('date_label')
+            ->values();
 
-        // 3. Performance par Profil (Donut)
-        $profileStats = (clone $query)
-            ->leftJoin('profiles', 'pending_transactions.profile_id', '=', 'profiles.id')
-            ->select([
-                DB::raw('COALESCE(profiles.name, "Inconnu") as label'),
-                DB::raw('SUM(total_price) as value')
+        $profileStats = $sales
+            ->groupBy('profile_label')
+            ->map(fn (Collection $rows, string $label) => (object) [
+                'label' => $label,
+                'value' => (float) $rows->sum('amount'),
             ])
-            ->groupBy('label')
-            ->get();
+            ->sortByDesc('value')
+            ->values();
 
-        // 4. Performance par Routeur (Tableau)
-        $routerStats = (clone $query)
-            ->leftJoin('routers', 'pending_transactions.router_id', '=', 'routers.id')
-            ->select([
-                DB::raw('COALESCE(routers.name, "Non assigné") as label'),
-                DB::raw('COUNT(pending_transactions.id) as sales_count'),
-                DB::raw('SUM(total_price) as total_revenue')
+        $maxRevenue = max(1, (float) $sales->groupBy('router_label')->map(fn ($rows) => $rows->sum('amount'))->max());
+
+        $routerStats = $sales
+            ->groupBy('router_label')
+            ->map(fn (Collection $rows, string $label) => (object) [
+                'label' => $label,
+                'sales_count' => $rows->count(),
+                'total_revenue' => (float) $rows->sum('amount'),
+                'progress' => round(((float) $rows->sum('amount') / $maxRevenue) * 100, 1),
             ])
-            ->groupBy('label')
-            ->orderByDesc('total_revenue')
-            ->get();
+            ->sortByDesc('total_revenue')
+            ->values();
 
         return view('content.reports.index', compact(
-            'totals', 'salesTrend', 'profileStats', 'routerStats', 
-            'routers', 'routerId', 'period', 'dateRange'
+            'totals',
+            'salesTrend',
+            'profileStats',
+            'routerStats',
+            'routers',
+            'routerId',
+            'period',
+            'dateRange'
         ));
     }
 
-    /**
-     * Export Excel filtré
-     */
     public function exportExcel(Request $request)
     {
         $user = Auth::user();
-        $period = $request->input('period', 'month');
-        $routerId = $request->input('router_id');
-        $dateRange = $request->input('date_range');
+        $filters = Session::get('reports.filters', []);
+        $period = $request->input('period', $filters['period'] ?? 'month');
+        $routerId = $request->input('router_id', $filters['router_id'] ?? null);
+        $dateRange = $request->input('date_range', $filters['date_range'] ?? null);
 
         [$startDate, $endDate] = $this->resolveDates($period, $dateRange);
-
-        $query = PendingTransaction::query()
-            ->where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate]);
-
+        $selectedRouterName = null;
         if ($routerId) {
-            $query->where('router_id', $routerId);
+            $selectedRouterName = Router::where('user_id', $user->id)->where('id', (int) $routerId)->value('name');
         }
 
-        return Excel::download(new SalesReportExport($query), 'ventes_hotspot_' . now()->format('d_m_Y') . '.xlsx');
+        $sales = $this->buildSalesDataset((int) $user->id, $startDate, $endDate, $routerId, $selectedRouterName);
+
+        return Excel::download(new SalesReportExport($sales), 'ventes_hotspot_' . now()->format('d_m_Y') . '.xlsx');
     }
 
-    /**
-     * Export PDF filtré
-     */
     public function exportPdf(Request $request)
     {
         $user = Auth::user();
-        $period = $request->input('period', 'month');
-        $routerId = $request->input('router_id');
-        $dateRange = $request->input('date_range');
+        $filters = Session::get('reports.filters', []);
+        $period = $request->input('period', $filters['period'] ?? 'month');
+        $routerId = $request->input('router_id', $filters['router_id'] ?? null);
+        $dateRange = $request->input('date_range', $filters['date_range'] ?? null);
 
         [$startDate, $endDate] = $this->resolveDates($period, $dateRange);
-
-        $query = PendingTransaction::query()
-            ->where('user_id', $user->id)
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->with(['router', 'profile']);
-
+        $selectedRouterName = null;
         if ($routerId) {
-            $query->where('router_id', $routerId);
+            $selectedRouterName = Router::where('user_id', $user->id)->where('id', (int) $routerId)->value('name');
         }
 
-        $sales = $query->orderByDesc('created_at')->get();
+        $sales = $this->buildSalesDataset((int) $user->id, $startDate, $endDate, $routerId, $selectedRouterName)
+            ->sortByDesc('date')
+            ->values();
+
         $totals = [
             'sales' => $sales->count(),
-            'amount' => $sales->sum('total_price'),
+            'amount' => (float) $sales->sum('amount'),
         ];
 
         $pdf = Pdf::loadView('content.reports.export_pdf', compact('sales', 'totals', 'period'));
+
         return $pdf->download('rapport_ventes_' . now()->format('d_m_Y') . '.pdf');
     }
 
-    /**
-     * Méthode unique de résolution des dates pour index et exports
-     */
-    private function resolveDates($period, $dateRange)
+    private function resolveDates($period, $dateRange): array
     {
         if ($dateRange && str_contains($dateRange, ' to ')) {
             $parts = explode(' to ', $dateRange);
+
             return [
                 Carbon::parse($parts[0])->startOfDay(),
-                Carbon::parse($parts[1])->endOfDay()
+                Carbon::parse($parts[1])->endOfDay(),
             ];
         }
 
-        $start = match($period) {
+        $start = match ($period) {
             'day' => now()->startOfDay(),
             'week' => now()->startOfWeek(),
             'year' => now()->startOfYear(),
@@ -168,5 +165,60 @@ class ReportController extends Controller
         };
 
         return [$start, now()->endOfDay()];
+    }
+
+    private function buildSalesDataset(int $userId, Carbon $startDate, Carbon $endDate, $routerId = null, ?string $selectedRouterName = null): Collection
+    {
+        $online = PendingTransaction::query()
+            ->leftJoin('routers', 'pending_transactions.router_id', '=', 'routers.id')
+            ->leftJoin('profiles', 'pending_transactions.profile_id', '=', 'profiles.id')
+            ->where('pending_transactions.user_id', $userId)
+            ->where('pending_transactions.status', 'completed')
+            ->whereBetween('pending_transactions.created_at', [$startDate, $endDate])
+            ->when($routerId, fn ($q) => $q->where('pending_transactions.router_id', $routerId))
+            ->select([
+                'pending_transactions.created_at as date',
+                DB::raw('COALESCE(pending_transactions.total_price, 0) as amount'),
+                DB::raw('COALESCE(routers.name, "Non assigné") as router_label'),
+                DB::raw('COALESCE(profiles.name, "Profil inconnu") as profile_label'),
+                DB::raw('COALESCE(pending_transactions.customer_number, "-") as customer'),
+                DB::raw("'online' as source"),
+            ])
+            ->get()
+            ->map(fn ($row) => [
+                'date' => Carbon::parse($row->date),
+                'amount' => (float) $row->amount,
+                'router_label' => (string) (($row->router_label === 'Non assigné' && $selectedRouterName) ? $selectedRouterName : $row->router_label),
+                'profile_label' => (string) $row->profile_label,
+                'customer' => (string) $row->customer,
+                'source' => (string) $row->source,
+            ]);
+
+        $manual = Voucher::query()
+            ->leftJoin('routers', 'vouchers.activated_router_id', '=', 'routers.id')
+            ->leftJoin('profiles', 'vouchers.profile_id', '=', 'profiles.id')
+            ->where('vouchers.user_id', $userId)
+            ->where('vouchers.status', 'used')
+            ->whereBetween('vouchers.used_at', [$startDate, $endDate])
+            ->when($routerId, fn ($q) => $q->where('vouchers.activated_router_id', $routerId))
+            ->select([
+                'vouchers.used_at as date',
+                DB::raw('COALESCE(profiles.price, 0) as amount'),
+                DB::raw('COALESCE(routers.name, "Non assigné") as router_label'),
+                DB::raw('COALESCE(profiles.name, "Profil inconnu") as profile_label'),
+                DB::raw('COALESCE(vouchers.code, "-") as customer'),
+                DB::raw("'voucher' as source"),
+            ])
+            ->get()
+            ->map(fn ($row) => [
+                'date' => Carbon::parse($row->date),
+                'amount' => (float) $row->amount,
+                'router_label' => (string) (($row->router_label === 'Non assigné' && $selectedRouterName) ? $selectedRouterName : $row->router_label),
+                'profile_label' => (string) $row->profile_label,
+                'customer' => (string) $row->customer,
+                'source' => (string) $row->source,
+            ]);
+
+        return $online->concat($manual)->sortBy('date')->values();
     }
 }

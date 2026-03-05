@@ -1,7 +1,7 @@
 <div>
     @php
         $basePrice = (float) $profile->price;
-        $feeAmount = $commissionPayer === 'client' ? max(0, (float) $commissionAmount) : 0;
+        $feeAmount = max(0, (float) $commissionAmount);
         $totalPrice = (float) $displayPrice;
     @endphp
 
@@ -24,7 +24,8 @@
     <div class="badge-header">
       <span class="badge-time">{{ $profile->name }}</span>
       <span class="badge-val">
-        {{ (float) $displayPrice <= 0 ? 'Gratuit' : number_format($displayPrice, 0, ',', ' ') . ' FCFA' }}
+        <!--{{ (float) $displayPrice <= 0 ? 'Gratuit' : number_format($displayPrice, 0, ',', ' ') . ' FCFA' }}-->
+        {{ $basePrice <= 0 ? 'Gratuit' : number_format($basePrice, 0, ',', ' ') . ' FCFA' }}
       </span>
     </div>
     <ul class="badge-list">

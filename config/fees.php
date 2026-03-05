@@ -7,8 +7,8 @@ return [
 
     // Fee split metadata for reporting/business visibility.
     'moneyfusion_payin_percent' => env('MONEYFUSION_PAYIN_PERCENT', 3),
-    'platform_markup_percent' => env('PLATFORM_MARKUP_PERCENT', 2),
+    'platform_markup_percent' => env('PLATFORM_MARKUP_PERCENT', 1),
     
     // Total fee applied on withdrawals (Money Fusion fee + platform margin).
-    'withdrawal_fee_percent' => env('WITHDRAWAL_FEE_PERCENT', 5),
+    'withdrawal_fee_percent' => env('WITHDRAWAL_FEE_PERCENT', 3.5),
 ];
