@@ -3,9 +3,9 @@
     {
       "url": "/dashboard",
       "name": "Tableau De Bord",
-      "icon": "menu-icon icon-base ti tabler-dashboard",
+      "icon": "menu-icon icon-base ti tabler-smart-home",
       "icon_color": "text-primary",
-      "slug": "pages-home"
+      "slug": "dashboard"
     },
     {
       "menuHeader": "Service Hotspot & PPPoE"
@@ -173,7 +173,11 @@
           "name": "Bons de Réduction",
           "icon": "menu-icon icon-base ti tabler-ticket",
           "icon_color": "text-primary",
-          "slug": "admin.coupons.index"
+          "slug": "admin.coupons.index",
+          "roles": [
+            "Super-admin",
+            "Admin"
+          ]
         }
       ]
     },
@@ -244,14 +248,22 @@
           "name": "Serveurs RADIUS",
           "icon": "menu-icon icon-base ti tabler-server-2",
           "icon_color": "text-primary",
-          "slug": "admin.radius-servers.index"
+          "slug": "admin.radius-servers.index",
+          "roles": [
+            "Super-admin",
+            "Admin"
+          ]
         },
         {
           "url": "/admin/radius-tester",
           "name": "Testeur RADIUS",
           "icon": "menu-icon icon-base ti tabler-shield-check",
           "icon_color": "text-primary",
-          "slug": "admin.radius-tester.index"
+          "slug": "admin.radius-tester.index",
+          "roles": [
+            "Super-admin",
+            "Admin"
+          ]
         }
       ]
     }

@@ -5,24 +5,20 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 @endphp
 
-<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+<aside id="layout-menu" class="layout-menu menu-vertical menu" @foreach ($configData['menuAttributes'] as $attribute => $value)
+  {{ $attribute }}="{{ $value }}" @endforeach>
 
   <!-- ! Hide app brand if navbar-full -->
-  @if(!isset($navbarFull))
+  @if (!isset($navbarFull))
   <div class="app-brand demo">
-    <a href="{{url('/')}}" class="app-brand-link">
-      <span class="app-brand-logo demo">
-        {{-- Logo agrandi à 28 --}}
-        @include('_partials.macros',["height"=>28])
-      </span>
-      <span class="app-brand-text demo menu-text fw-bold">
-        {{config('variables.templateName')}}
-      </span>
+    <a href="{{ url('/') }}" class="app-brand-link">
+      <span class="app-brand-logo demo">@include('_partials.macros')</span>
+      <span class="app-brand-text demo menu-text fw-bold ms-3">{{ config('variables.templateName') }}</span>
     </a>
 
     <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
-      <i class="ti menu-toggle-icon icon_color d-none d-xl-block ti-sm align-middle"></i>
-      <i class="ti ti-x d-block d-xl-none ti-sm align-middle"></i>
+      <i class="icon-base ti menu-toggle-icon d-none d-xl-block"></i>
+      <i class="icon-base ti tabler-x d-block d-xl-none"></i>
     </a>
   </div>
   @endif
@@ -32,58 +28,130 @@ use Illuminate\Support\Str;
   <ul class="menu-inner py-1">
     @foreach ($menuData[0]->menu as $menu)
 
-    {{-- Vérification des rôles --}}
     @php
+      $currentUser = auth()->user();
       $shouldRender = true;
+
       if (isset($menu->roles)) {
-        $shouldRender = auth()->check() && auth()->user()->hasAnyRole($menu->roles);
+        $shouldRender = auth()->check() && $currentUser->hasAnyRole($menu->roles);
       }
-    @endphp
 
-    @if ($shouldRender)
-      @if (isset($menu->menuHeader))
-      <li class="menu-header small text-uppercase">
-        <span class="menu-header-text">{{ __($menu->menuHeader) }}</span>
-      </li>
-      @else
-
-      @php
-      $activeClass = null;
-      $currentRouteName = Route::currentRouteName();
-
-      if ($currentRouteName === $menu->slug) {
-        $activeClass = 'active';
+      if (isset($menu->permission)) {
+        $shouldRender = $shouldRender && auth()->check() && $currentUser->can($menu->permission);
       }
-      elseif (isset($menu->submenu)) {
-        if (gettype($menu->slug) === 'string') {
-          $activeClass = Str::startsWith($currentRouteName, $menu->slug) ? 'active open' : '';
-        }
-        else {
-          foreach ($menu->slug as $slug){
-            if (Str::startsWith($currentRouteName, $slug)) {
-              $activeClass = 'active open';
-            }
+
+      // Durcissement: n'afficher les menus admin QUE pour Admin/Super-admin
+      $canSeeAdminMenus = auth()->check() && $currentUser->hasAnyRole(['Super-admin', 'Admin']);
+      $menuHeader = isset($menu->menuHeader) ? Str::lower((string) $menu->menuHeader) : '';
+      $menuSlug = isset($menu->slug) ? (string) $menu->slug : '';
+      $menuUrl = isset($menu->url) ? (string) $menu->url : '';
+
+      $isAdminMenu =
+        Str::contains($menuHeader, 'administration') ||
+        Str::startsWith($menuSlug, 'admin.') ||
+        Str::startsWith($menuSlug, 'admin-') ||
+        Str::startsWith($menuUrl, '/admin');
+
+      if (!$isAdminMenu && isset($menu->submenu) && is_array($menu->submenu)) {
+        foreach ($menu->submenu as $submenuItem) {
+          $submenuSlug = isset($submenuItem->slug) ? (string) $submenuItem->slug : '';
+          $submenuUrl = isset($submenuItem->url) ? (string) $submenuItem->url : '';
+
+          if (Str::startsWith($submenuSlug, 'admin.') || Str::startsWith($submenuUrl, '/admin')) {
+            $isAdminMenu = true;
+            break;
           }
         }
       }
-      @endphp
 
-      <li class="menu-item {{$activeClass}}">
-        <a href="{{ isset($menu->url) ? url($menu->url) : 'javascript:void(0);' }}" class="{{ isset($menu->submenu) ? 'menu-link menu-toggle' : 'menu-link' }}" @if (isset($menu->target) and !empty($menu->target)) target="_blank" @endif>
-          @if (isset($menu->icon))
-          <i class="{{ $menu->icon }} {{ $menu->icon_color ?? '' }}"></i>
-          @endif
-          <div>{{ isset($menu->name) ? __($menu->name) : '' }}</div>
-          @if (isset($menu->badge))
-          <div class="badge bg-{{ $menu->badge[0] }} rounded-pill ms-auto">{{ $menu->badge }}</div>
-          @endif
-        </a>
+      if (!$canSeeAdminMenus && $isAdminMenu) {
+        $shouldRender = false;
+      }
 
-        @if (isset($menu->submenu))
-        @include('layouts.sections.menu.submenu',['menu' => $menu->submenu])
-        @endif
-      </li>
-      @endif
+      if ($shouldRender && isset($menu->submenu) && is_array($menu->submenu)) {
+        $visibleSubmenuCount = 0;
+
+        foreach ($menu->submenu as $submenuItem) {
+          $submenuVisible = true;
+
+          if (isset($submenuItem->roles)) {
+            $submenuVisible = auth()->check() && $currentUser->hasAnyRole($submenuItem->roles);
+          }
+
+          if (isset($submenuItem->permission)) {
+            $submenuVisible = $submenuVisible && auth()->check() && $currentUser->can($submenuItem->permission);
+          }
+
+          $submenuSlug = isset($submenuItem->slug) ? (string) $submenuItem->slug : '';
+          $submenuUrl = isset($submenuItem->url) ? (string) $submenuItem->url : '';
+          $isAdminSubmenu = Str::startsWith($submenuSlug, 'admin.') || Str::startsWith($submenuUrl, '/admin');
+
+          if (!$canSeeAdminMenus && $isAdminSubmenu) {
+            $submenuVisible = false;
+          }
+
+          if ($submenuVisible) {
+            $visibleSubmenuCount++;
+          }
+        }
+
+        if ($visibleSubmenuCount === 0) {
+          $shouldRender = false;
+        }
+      }
+    @endphp
+
+    @if (!$shouldRender)
+      @continue
+    @endif
+
+    {{-- menu headers --}}
+    @if (isset($menu->menuHeader))
+    <li class="menu-header small">
+      <span class="menu-header-text">{{ __($menu->menuHeader) }}</span>
+    </li>
+    @else
+    {{-- active menu method --}}
+    @php
+    $activeClass = null;
+    $currentRouteName = Route::currentRouteName();
+
+    if ($currentRouteName === $menu->slug) {
+      $activeClass = 'active';
+    } elseif (isset($menu->submenu)) {
+      if (gettype($menu->slug) === 'array') {
+        foreach ($menu->slug as $slug) {
+          if (str_contains($currentRouteName, $slug) && strpos($currentRouteName, $slug) === 0) {
+            $activeClass = 'active open';
+          }
+        }
+      } else {
+        if (str_contains($currentRouteName, $menu->slug) && strpos($currentRouteName, $menu->slug) === 0) {
+          $activeClass = 'active open';
+        }
+      }
+    }
+    @endphp
+
+    {{-- main menu --}}
+    <li class="menu-item {{ $activeClass }}">
+      <a href="{{ isset($menu->url) ? url($menu->url) : 'javascript:void(0);' }}"
+        class="{{ isset($menu->submenu) ? 'menu-link menu-toggle' : 'menu-link' }}" @if (isset($menu->target) &&
+        !empty($menu->target)) target="_blank" @endif>
+        @isset($menu->icon)
+        <i class="{{ $menu->icon }}"></i>
+        @endisset
+        <div>{{ isset($menu->name) ? __($menu->name) : '' }}</div>
+        @isset($menu->badge)
+        <div class="badge bg-{{ $menu->badge[0] }} rounded-pill ms-auto">{{ $menu->badge ?? $menu->badge }}</div>
+        @endisset
+      </a>
+
+      {{-- submenu --}}
+      @isset($menu->submenu)
+      @include('layouts.sections.menu.submenu', ['menu' => $menu->submenu])
+      @endisset
+    </li>
     @endif
     @endforeach
   </ul>
@@ -125,27 +193,28 @@ use Illuminate\Support\Str;
       transition: all 0.2s ease-in-out;
     }
 
-    .app-brand-link:hover .app-brand-text {
-      color: rgba(255, 255, 255, 0.8) !important;
-    }
+    /*.app-brand-link:hover .app-brand-text {*/
+    /*  color: rgba(255, 255, 255, 0.8) !important;*/
+    /*}*/
 
     /* --- Visibilité Flèche sous-menu (Toggle) --- */
     /* Force les flèches (les chevrons à droite) en blanc */
-    .menu-vertical .menu-link.menu-toggle::after {
-      border-color: #ffffff !important;
-      opacity: 1 !important;
-    }
+    /*.menu-vertical .menu-link.menu-toggle::after {*/
+    /*  border-color: #ffffff !important;*/
+    /*  opacity: 1 !important;*/
+    /*}*/
 
     /* --- Styles Menu Block & Collapsed --- */
-    :is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block,
-    #layout-menu.layout-menu-collapsed .menu-block {
-      justify-content: center;
-    }
+    /*:is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block,*/
+    /*#layout-menu.layout-menu-collapsed .menu-block {*/
+    /*  justify-content: center;*/
+    /*}*/
     
-    :is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block .avatar,
-    #layout-menu.layout-menu-collapsed .menu-block .avatar {
-      margin-right: 0 !important;
-    }
+    /*:is(body, html, .layout-wrapper, .layout-container).layout-menu-collapsed #layout-menu .menu-block .avatar,*/
+    /*#layout-menu.layout-menu-collapsed .menu-block .avatar {*/
+    /*  margin-right: 0 !important;*/
+    /*}*/
   </style>
+
 
 </aside>

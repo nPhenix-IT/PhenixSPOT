@@ -783,11 +783,10 @@
 
         <div class="col-lg-6 text-center" data-reveal>
           <div class="position-relative d-inline-block">
-            <div class="position-absolute top-50 start-50 translate-middle w-100 h-100 rounded-circle"
-                 style="background: rgba(115,103,240,.10); filter: blur(90px);"></div>
+            <div class="position-absolute top-50 start-50 translate-middle w-100 h-100 rounded-circle" style="background: rgba(115,103,240,.10); filter: blur(90px);"></div>
 
             <img
-              src="{{ asset('assets/img/illustrations/herodashboard-light.png') }}"
+              src="{{ asset('assets/img/illustrations/herodashboard.png') }}"
               alt="Dashboard PhenixSPOT"
               class="img-fluid position-relative animate-float"
               style="max-width: 94%; border-radius: 26px; box-shadow: 0 30px 60px rgba(15,23,42,.14);"

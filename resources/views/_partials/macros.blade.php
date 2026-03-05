@@ -4,7 +4,7 @@
 @endphp
 
 <span class="text-primary">
-  <svg width="{{ $width }}" height="{{ $height }}" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 199.15 317.94" >
+    <svg width="{{ $width }}" height="{{ $height }}" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 199.15 317.94" >
   <defs>
     <linearGradient id="Nouvelle_nuance_de_dégradé_1" data-name="Nouvelle nuance de dégradé 1" x1="111.89" y1="12.21" x2="111.89" y2="183.61" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#ff9a2a"/>
