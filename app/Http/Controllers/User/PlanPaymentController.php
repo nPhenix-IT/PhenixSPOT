@@ -9,6 +9,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Services\MoneyFusionService;
+use App\Services\VoucherLifecycleService;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Log;
 
 class PlanPaymentController extends Controller
 {
+    public function __construct(private readonly VoucherLifecycleService $voucherLifecycleService)
+    {
+    }
+
     public function callback(Request $request)
     {
         $user = Auth::user();
@@ -232,6 +237,7 @@ class PlanPaymentController extends Controller
         });
 
         if ($finalized && is_array($notificationPayload)) {
+            $this->voucherLifecycleService->syncActivationForUser((int) ($notificationPayload['user_id'] ?? 0));
             $this->sendSubscriptionActivatedTelegram($notificationPayload);
         }
 

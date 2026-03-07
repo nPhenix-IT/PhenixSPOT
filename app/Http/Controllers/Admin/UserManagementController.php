@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\VoucherLifecycleService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -17,6 +18,10 @@ use Yajra\DataTables\Facades\DataTables;
 
 class UserManagementController extends Controller
 {
+    public function __construct(private readonly VoucherLifecycleService $voucherLifecycleService)
+    {
+    }
+
     public function index(Request $request)
     {
         if ($request->ajax() || $request->expectsJson() || $request->has('draw')) {
@@ -163,6 +168,7 @@ class UserManagementController extends Controller
                 'status' => 'active',
             ]);
         });
+        $this->voucherLifecycleService->syncActivationForUser((int) $user->id);
 
         return $request->ajax()
             ? response()->json(['message' => 'Plan assigné avec succès.'])
@@ -218,5 +224,7 @@ class UserManagementController extends Controller
             'ends_at' => now()->addDays(30),
             'status' => 'active',
         ]);
+    
+    $this->voucherLifecycleService->syncActivationForUser((int) $user->id);
     }
 }

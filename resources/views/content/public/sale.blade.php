@@ -248,7 +248,7 @@ $pageConfigs = ['myLayout' => 'blank'];
       <div class="col-lg-7 col-md-9">
         <div class="sale-card">
           <div class="text-center">
-            <h2 class="sale-title" style="color: {{ optional($settings)->primary_color ?? '#1f2937' }}">
+            <h2 class="sale-title" style="color: {{ optional($settings)->primary_color ?? '#00A7BC' }}">
               {{ optional($settings)->title ?: "Forfaits WiFi de {$user->name}" }}
             </h2>
             <p class="sale-subtitle">
@@ -385,7 +385,7 @@ $pageConfigs = ['myLayout' => 'blank'];
 
               <div class="mt-4 purchase-actions purchase-actions-centered">
                 <button id="purchaseSubmitBtn" type="submit" class="btn btn-primary btn-lg"
-                  style="background-color: {{ optional($settings)->primary_color ?? '#1f2937' }}; border-color: {{ optional($settings)->primary_color ?? '#1f2937' }};">
+                  style="background-color: {{ optional($settings)->primary_color ?? '#00A7BC7' }}; border-color: {{ optional($settings)->primary_color ?? '#00A7BC7' }};">
                   Payer avec Money Fusion
                 </button>
               </div>

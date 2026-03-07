@@ -118,8 +118,7 @@
       "icon_color": "text-primary",
       "slug": "user.payment-gateways.index",
       "roles": [
-        "Super-admin",
-        "Admin"
+        "Super-admin"
       ]
     },
     {
@@ -128,6 +127,17 @@
       "icon": "menu-icon icon-base ti tabler-diamond",
       "icon_color": "text-primary",
       "slug": "user.plans.index"
+    },
+    {
+      "url": "/docs",
+      "name": "Documentation Academy",
+      "icon": "menu-icon icon-base ti tabler-school",
+      "icon_color": "text-primary",
+      "slug": "academy.courses",
+      "roles": [
+        "Super-admin",
+        "Admin"
+      ]
     },
     {
       "menuHeader": "Administration",
@@ -143,8 +153,7 @@
       "icon_color": "text-primary",
       "slug": "admin.withdrawals.index",
       "roles": [
-        "Super-admin",
-        "Admin"
+        "Super-admin"
       ]
     },
     {
@@ -164,8 +173,7 @@
           "icon_color": "text-primary",
           "slug": "admin.plans.index",
           "roles": [
-            "Super-admin",
-            "Admin"
+            "Super-admin"
           ]
         },
         {
@@ -175,8 +183,7 @@
           "icon_color": "text-primary",
           "slug": "admin.coupons.index",
           "roles": [
-            "Super-admin",
-            "Admin"
+            "Super-admin"
           ]
         }
       ]
@@ -187,7 +194,8 @@
       "icon_color": "text-primary",
       "slug": "admin-rbac-users",
       "roles": [
-        "Super-admin"
+        "Super-admin",
+        "Admin"
       ],
       "submenu": [
         {
@@ -217,6 +225,38 @@
           "icon_color": "text-primary",
           "slug": "admin.users.index",
           "roles": [
+            "Super-admin",
+            "Admin"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Documentation Interne",
+      "icon": "menu-icon icon-base ti tabler-file-description",
+      "icon_color": "text-primary",
+      "slug": "admin-internal-docs",
+      "roles": [
+        "Super-admin"
+      ],
+      "submenu": [
+        {
+          "url": "/admin/internal-docs",
+          "name": "Pages internes",
+          "icon": "menu-icon icon-base ti tabler-notebook",
+          "icon_color": "text-primary",
+          "slug": "admin.internal-docs.index",
+          "roles": [
+            "Super-admin"
+          ]
+        },
+        {
+          "url": "/admin/internal-docs/create",
+          "name": "Créer une page",
+          "icon": "menu-icon icon-base ti tabler-square-rounded-plus",
+          "icon_color": "text-primary",
+          "slug": "admin.internal-docs.create",
+          "roles": [
             "Super-admin"
           ]
         }
@@ -228,8 +268,7 @@
       "slug": "gestion-finances",
       "icon_color": "text-primary",
       "roles": [
-        "Super-admin",
-        "Admin"
+        "Super-admin"
       ],
       "submenu": [
         {
@@ -239,8 +278,7 @@
           "icon_color": "text-primary",
           "slug": "admin.vpn-servers.index",
           "roles": [
-            "Super-admin",
-            "Admin"
+            "Super-admin"
           ]
         },
         {
@@ -250,8 +288,7 @@
           "icon_color": "text-primary",
           "slug": "admin.radius-servers.index",
           "roles": [
-            "Super-admin",
-            "Admin"
+            "Super-admin"
           ]
         },
         {
@@ -261,8 +298,7 @@
           "icon_color": "text-primary",
           "slug": "admin.radius-tester.index",
           "roles": [
-            "Super-admin",
-            "Admin"
+            "Super-admin"
           ]
         }
       ]

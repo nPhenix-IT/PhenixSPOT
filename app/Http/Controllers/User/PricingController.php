@@ -9,6 +9,7 @@ use App\Models\PendingVpnAccountPayment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Transaction;
+use App\Services\VoucherLifecycleService;
 use App\Models\User;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
@@ -341,13 +342,17 @@ class PricingController extends Controller
             ->where('status', 'active')
             ->update(['status' => 'cancelled']);
 
-        return Subscription::create([
+        $subscription = Subscription::create([
             'user_id' => $userId,
             'plan_id' => $planId,
             'starts_at' => now(),
             'ends_at' => $duration === 'annually' ? now()->addYear() : now()->addMonth(),
             'status' => 'active',
         ]);
+
+        app(VoucherLifecycleService::class)->syncActivationForUser($userId);
+
+        return $subscription;
     }
 
     private function sendSubscriptionActivatedTelegram(User $user, float $amount, string $reference, string $planName, $expiration): void

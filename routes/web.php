@@ -25,6 +25,9 @@ use App\Http\Controllers\Admin\RadiusTesterController;
 use App\Http\Controllers\Admin\AccessPermissionController;
 use App\Http\Controllers\Admin\AccessRoleController;
 use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\InternalDocPageController;
+use App\Http\Controllers\apps\AcademyCourseController;
+use App\Http\Controllers\apps\AcademyCourseDetailsController;
 
 use App\Http\Controllers\Public\SaleController;
 use App\Http\Controllers\Public\PaymentController;
@@ -72,13 +75,11 @@ Route::get('vpn/scripts/{account}/core', [VpnAccountController::class, 'scriptCo
 // Génère une commande MikroTik (loader) à coller dans le terminal (JSON)
 Route::get('routers/{router}/radius/install-command', [RouterController::class, 'radiusInstallCommand'])->name('routers.radius.install-command');
 // (Optionnel mais recommandé) loader/core text/plain si tu veux aussi supporter /tool fetch
-// Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader')->middleware('signed');
 Route::get('routers/scripts/{router}/loader', [RouterController::class, 'radiusScriptLoader'])->name('routers.radius.script.loader');
 Route::get('routers/scripts/{router}/core', [RouterController::class, 'radiusScriptCore'])->name('routers.radius.script.core');
 
 Route::get('sales-page/scripts/{user}/loader', [SalePageController::class, 'loginTemplateScriptLoader'])->name('salespage.login.script.loader');
 Route::get('sales-page/scripts/{user}/core', [SalePageController::class, 'loginTemplateScriptCore'])->name('salespage.login.script.core');
-
 
 // Routes Utilisateur
 Route::middleware(['auth', 'active.user'])->name('user.')->group(function () {
@@ -168,47 +169,21 @@ Route::middleware(['auth', 'active.user', 'role:Super-admin|Admin'])->prefix('ad
     // Route::post('vpn-servers/wireguard', [VpnServerController::class, 'storeWireguard'])->name('vpn-servers.store-wireguard');
 
 
-    Route::get('access/permissions', [AccessPermissionController::class, 'index'])
-        ->middleware('permission:access.permissions.view')
-        ->name('access.permissions.index');
-    Route::post('access/permissions', [AccessPermissionController::class, 'store'])
-        ->middleware('permission:access.permissions.manage')
-        ->name('access.permissions.store');
-    Route::put('access/permissions/{permission}', [AccessPermissionController::class, 'update'])
-        ->middleware('permission:access.permissions.manage')
-        ->name('access.permissions.update');
-    Route::delete('access/permissions/{permission}', [AccessPermissionController::class, 'destroy'])
-        ->middleware('permission:access.permissions.manage')
-        ->name('access.permissions.destroy');
+    Route::get('access/permissions', [AccessPermissionController::class, 'index'])->middleware('permission:access.permissions.view')->name('access.permissions.index');
+    Route::post('access/permissions', [AccessPermissionController::class, 'store'])->middleware('permission:access.permissions.manage')->name('access.permissions.store');
+    Route::put('access/permissions/{permission}', [AccessPermissionController::class, 'update'])->middleware('permission:access.permissions.manage')->name('access.permissions.update');
+    Route::delete('access/permissions/{permission}', [AccessPermissionController::class, 'destroy'])->middleware('permission:access.permissions.manage')->name('access.permissions.destroy');
 
-    Route::get('access/roles', [AccessRoleController::class, 'index'])
-        ->middleware('permission:access.roles.view')
-        ->name('access.roles.index');
-    Route::post('access/roles', [AccessRoleController::class, 'store'])
-        ->middleware('permission:access.roles.manage')
-        ->name('access.roles.store');
-    Route::put('access/roles/{role}', [AccessRoleController::class, 'update'])
-        ->middleware('permission:access.roles.manage')
-        ->name('access.roles.update');
+    Route::get('access/roles', [AccessRoleController::class, 'index'])->middleware('permission:access.roles.view')->name('access.roles.index');
+    Route::post('access/roles', [AccessRoleController::class, 'store'])->middleware('permission:access.roles.manage')->name('access.roles.store');
+    Route::put('access/roles/{role}', [AccessRoleController::class, 'update'])->middleware('permission:access.roles.manage')->name('access.roles.update');
 
-    Route::get('users', [UserManagementController::class, 'index'])
-        ->middleware('permission:users.view')
-        ->name('users.index');
-    Route::post('users', [UserManagementController::class, 'store'])
-        ->middleware('permission:users.create')
-        ->name('users.store');
-    Route::put('users/{user}', [UserManagementController::class, 'update'])
-        ->middleware('permission:users.update')
-        ->name('users.update');
-    Route::post('users/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])
-        ->middleware('permission:users.toggle')
-        ->name('users.toggle-status');
-    Route::post('users/{user}/assign-plan', [UserManagementController::class, 'assignPlan'])
-        ->middleware('permission:users.assign-plan')
-        ->name('users.assign-plan');
-    Route::post('users/{user}/impersonate', [UserManagementController::class, 'impersonate'])
-        ->middleware('permission:users.impersonate')
-        ->name('users.impersonate');
+    Route::get('users', [UserManagementController::class, 'index'])->middleware('permission:users.view')->name('users.index');
+    Route::post('users', [UserManagementController::class, 'store'])->middleware('permission:users.create')->name('users.store');
+    Route::put('users/{user}', [UserManagementController::class, 'update'])->middleware('permission:users.update')->name('users.update');
+    Route::post('users/{user}/toggle-status', [UserManagementController::class, 'toggleStatus'])->middleware('permission:users.toggle')->name('users.toggle-status');
+    Route::post('users/{user}/assign-plan', [UserManagementController::class, 'assignPlan'])->middleware('permission:users.assign-plan')->name('users.assign-plan');
+    Route::post('users/{user}/impersonate', [UserManagementController::class, 'impersonate'])->middleware('permission:users.impersonate')->name('users.impersonate');
 
     Route::get('withdrawals', [WithdrawalController::class, 'index'])->name('withdrawals.index');
     Route::post('withdrawals/{withdrawalRequest}/approve', [WithdrawalController::class, 'approve'])->name('withdrawals.approve');
@@ -216,6 +191,24 @@ Route::middleware(['auth', 'active.user', 'role:Super-admin|Admin'])->prefix('ad
     Route::resource('radius-servers', RadiusServerController::class);
     Route::get('radius-tester', [RadiusTesterController::class, 'index'])->name('radius-tester.index');
     Route::post('radius-tester/test', [RadiusTesterController::class, 'test'])->name('radius-tester.test');
+
+    Route::middleware('role:Super-admin')->prefix('internal-docs')->name('internal-docs.')->group(function () {
+        Route::get('/', [InternalDocPageController::class, 'index'])->name('index');
+        Route::get('/create', [InternalDocPageController::class, 'create'])->name('create');
+        Route::post('/', [InternalDocPageController::class, 'store'])->name('store');
+        Route::get('/{slug}/edit', [InternalDocPageController::class, 'edit'])->name('edit');
+        Route::put('/{slug}', [InternalDocPageController::class, 'update'])->name('update');
+        Route::delete('/{slug}', [InternalDocPageController::class, 'destroy'])->name('destroy');
+    });
+});
+
+// Routes Documentations
+Route::middleware(['auth', 'active.user'])->get('/docs/{slug}', [InternalDocPageController::class, 'show'])->name('docs.show');
+Route::middleware(['auth', 'active.user'])->get('/faq-pages', [AcademyCourseDetailsController::class, 'index'])->defaults('slug', 'faq-pages')->name('faq.pages');
+
+Route::middleware(['auth', 'active.user'])->prefix('docs')->group(function () {
+    Route::get('/', [AcademyCourseController::class, 'index'])->name('docs.index');
+    Route::get('/{slug}', [AcademyCourseDetailsController::class, 'index'])->name('docs.show');
 });
 
 // Routes Publiques

@@ -10,6 +10,43 @@ use Illuminate\Support\Facades\DB;
 
 class VoucherLifecycleService
 {
+    public function syncActivationForUser(int $userId): array
+    {
+        if ($userId <= 0) {
+            return ['deactivated' => 0, 'reactivated' => 0];
+        }
+
+        $hasActiveSubscription = Subscription::query()
+            ->where('user_id', $userId)
+            ->where('status', 'active')
+            ->where('ends_at', '>', now())
+            ->exists();
+
+        if ($hasActiveSubscription) {
+            $reactivated = Voucher::query()
+                ->where('user_id', $userId)
+                ->where('status', 'new')
+                ->where('is_active', false)
+                ->update(['is_active' => true]);
+
+            return [
+                'deactivated' => 0,
+                'reactivated' => $reactivated,
+            ];
+        }
+
+        $deactivated = Voucher::query()
+            ->where('user_id', $userId)
+            ->where('status', 'new')
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
+
+        return [
+            'deactivated' => $deactivated,
+            'reactivated' => 0,
+        ];
+    }
+    
     /**
      * Désactive/réactive les vouchers NON utilisés (status=new)
      * selon l'état de l'abonnement utilisateur.

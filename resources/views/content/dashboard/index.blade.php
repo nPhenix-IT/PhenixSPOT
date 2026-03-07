@@ -1,6 +1,6 @@
 @extends('layouts/layoutMaster')
 
-@section('title', 'PhenixSpot - Dashboard Pro')
+@section('title', 'PhenixSpot - Tableau de Bord')
 
 @section('vendor-style')
 @vite(['resources/assets/vendor/libs/apex-charts/apex-charts.scss'])
@@ -25,6 +25,8 @@ body { background-color: var(--dash-bg); }
 .source-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 .filter-bar { background: #fff; padding: 0.75rem 1.5rem; border-radius: 15px; box-shadow: var(--dash-shadow); margin-bottom: 2rem; }
 .chart-filter-select { border: none; font-size: 0.8rem; font-weight: 600; color: #7367f0; cursor: pointer; background: #f0eeff; padding: 4px 10px; border-radius: 8px; }
+.onboarding-card { border: 1px solid #e9e7ff; background: linear-gradient(135deg, rgba(115,103,240,.08), rgba(0,207,232,.08)); }
+.onboarding-step { border-radius: 12px; border: 1px dashed #d9d6ff; padding: .65rem .8rem; background: #fff; }
 </style>
 @endsection
 
@@ -39,6 +41,72 @@ body { background-color: var(--dash-bg); }
       <form method="POST" action="{{ route('impersonation.leave') }}">@csrf<button class="btn btn-sm btn-success" type="submit">Logout as Super Admin</button></form>
     </div>
   @endif
+  
+  @if(!$isAdmin && ($onboarding['show'] ?? false))
+    <div class="card onboarding-card mb-4" id="onboarding-card">
+      <div class="card-body">
+        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
+          <div>
+            <h5 class="mb-1">🚀 Assistant de démarrage PhenixSPOT</h5>
+            <p class="text-muted mb-2">Suivez le guide dans l'ordre : routeur → profils → vouchers → page de vente → template login MikroTik.</p>
+            <div class="progress" style="height:8px; max-width: 440px;">
+              <div class="progress-bar" role="progressbar" style="width: {{ $onboarding['progress_percent'] }}%" aria-valuenow="{{ $onboarding['progress_percent'] }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <small class="text-muted">{{ $onboarding['completed'] }}/{{ $onboarding['total'] }} étapes terminées</small>
+          </div>
+
+          <div class="d-flex gap-2">
+            @if(!empty($onboarding['next_step']))
+              <a href="{{ $onboarding['next_step']['route'] }}" class="btn btn-primary">
+                Continuer : {{ $onboarding['next_step']['route_label'] }}
+              </a>
+            @endif
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#onboardingGuideModal">Voir le guide</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="onboardingGuideModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Guide automatique de mise en route</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <small class="text-muted">Progression : {{ $onboarding['completed'] }}/{{ $onboarding['total'] }}</small>
+              <span class="badge bg-label-primary">{{ $onboarding['progress_percent'] }}%</span>
+            </div>
+
+            <div class="d-flex flex-column gap-2">
+              @foreach($onboarding['steps'] as $index => $step)
+                <div class="onboarding-step d-flex justify-content-between align-items-start gap-3">
+                  <div>
+                    <div class="fw-semibold">
+                      Étape {{ $index + 1 }} — {{ $step['title'] }}
+                      @if($step['done'])
+                        <span class="badge bg-label-success ms-2">Terminé</span>
+                      @else
+                        <span class="badge bg-label-warning ms-2">À faire</span>
+                      @endif
+                    </div>
+                    <div class="text-muted small mt-1">{{ $step['description'] }}</div>
+                  </div>
+                  <a href="{{ $step['route'] }}" class="btn btn-sm {{ $step['done'] ? 'btn-label-secondary' : 'btn-primary' }}">{{ $step['route_label'] }}</a>
+                </div>
+              @endforeach
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Fermer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  @endif
+
   <!-- Main Header -->
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
@@ -295,6 +363,9 @@ body { background-color: var(--dash-bg); }
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const isAdmin = @json($isAdmin);
+  const shouldShowOnboarding = @json((bool) (!$isAdmin && (($onboarding['show'] ?? false))));
+  const onboardingModalId = @json('onboardingGuideModal');
+  const userId = @json((int) auth()->id());
   const formatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' });
   const withdrawalsUrl = @json(url('/admin/withdrawals'));
   let chartEvolution, chartSource, chartRouter, chartFeesTrend;
@@ -521,6 +592,14 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   loadStats();
+
+  if (shouldShowOnboarding) {
+    const modalEl = document.getElementById(onboardingModalId);
+    if (modalEl) {
+      const modal = new bootstrap.Modal(modalEl);
+      modal.show();
+    }
+  }
 });
 </script>
 @endsection
