@@ -86,11 +86,7 @@ use Illuminate\Support\Facades\Route;
               </div>
               <div class="flex-grow-1">
                 <h6 class="mb-0">
-                  @if (Auth::check())
                   {{ Auth::user()->name }}
-                  @else
-                  John Doe
-                  @endif
                 </h6>
                 <!--<small class="text-body-secondary">Admin</small>-->
               </div>
@@ -120,48 +116,6 @@ use Illuminate\Support\Facades\Route;
             </span>
           </a>
         </li>
-        @if (Auth::User() && Laravel\Jetstream\Jetstream::hasTeamFeatures())
-        <li>
-          <div class="dropdown-divider my-1 mx-n2"></div>
-        </li>
-        <li>
-          <h6 class="dropdown-header">Equipe</h6>
-        </li>
-        <li>
-          <div class="dropdown-divider my-1"></div>
-        </li>
-        <li>
-          <a class="dropdown-item"
-            href="{{ Auth::user() ? route('teams.show', Auth::user()->currentTeam->id) : 'javascript:void(0)' }}">
-            <i class="icon-base ti tabler-settings icon-md me-3"></i><span>Paramètres</span>
-          </a>
-        </li>
-        @can('create', Laravel\Jetstream\Jetstream::newTeamModel())
-        <li>
-          <a class="dropdown-item" href="{{ route('teams.create') }}">
-            <i class="icon-base ti tabler-plus icon-md me-3"></i><span>Créer</span>
-          </a>
-        </li>
-        @endcan
-        @if (Auth::user()->allTeams()->count() > 1)
-        <li>
-          <div class="dropdown-divider my-1"></div>
-        </li>
-        <li>
-          <h6 class="dropdown-header">Changer</h6>
-        </li>
-        <li>
-          <div class="dropdown-divider my-1"></div>
-        </li>
-        @endif
-        @if (Auth::user())
-        @foreach (Auth::user()->allTeams() as $team)
-        {{-- Below commented code read by artisan command while installing jetstream. !! Do not remove if you want to use jetstream. --}}
-
-        <x-switchable-team :team="$team" />
-        @endforeach
-        @endif
-        @endif
         <li>
           <div class="dropdown-divider my-1 mx-n2"></div>
         </li>

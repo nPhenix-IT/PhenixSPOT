@@ -95,6 +95,17 @@
         <div class="mb-4">
           <h6 class="mb-3 text-primary">Configuration RADIUS</h6>
           <div class="mb-3"><label class="form-label">Nom du routeur</label><input type="text" class="form-control" name="name" /></div>
+          <div class="mb-3"><label class="form-label">Localisation (zone / ville)</label><input type="text" class="form-control" name="location" id="router_location" placeholder="Ex: Abidjan, Cocody" /></div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Latitude</label>
+              <input type="number" step="any" class="form-control" name="latitude" id="router_latitude" placeholder="Ex: 5.336389" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Longitude</label>
+              <input type="number" step="any" class="form-control" name="longitude" id="router_longitude" placeholder="Ex: -4.026667" />
+            </div>
+          </div>
           <div class="mb-3">
               <label class="form-label">Adresse Public (AAA)</label>
               <input type="text" class="form-control bg-light text-muted" name="ip_address" id="router_ip_address" placeholder="IP WireGuard auto-générée" readonly aria-readonly="true" />

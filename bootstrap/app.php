@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Désactivation de la protection CSRF pour le webhook FreeRADIUS
         $middleware->validateCsrfTokens(except: [
             'radius/webhook',
+            'sms-recharges/webhook',
         ]);
         $middleware->alias([
             'subscribed' => \App\Http\Middleware\CheckSubscription::class,

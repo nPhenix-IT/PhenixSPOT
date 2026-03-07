@@ -346,6 +346,8 @@ RSC;
       'play.google.com',
       'apps.apple.com',
       'tools.applemediaservices.com',
+      'cdn.jsdelivr.net',
+      '*.jsdelivr.net',
     ];
 
     $wgLines = [];

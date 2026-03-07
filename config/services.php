@@ -42,6 +42,11 @@ return [
         'private_key' => env('MONEYFUSION_PRIVATE_KEY'),
     ],
     
+    'leaflet' => [
+        'tile_url' => env('LEAFLET_TILE_URL', 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+        'attribution' => env('LEAFLET_ATTRIBUTION', '&copy; OpenStreetMap contributors'),
+    ],
+    
     'kingsmspro' => [
         'base_url' => env('KINGSMSPRO_BASE_URL', 'https://edok-api.kingsmspro.com/api/v1/sms/send/'),
         'api_key' => env('KINGSMSPRO_API_KEY'),

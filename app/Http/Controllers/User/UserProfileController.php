@@ -109,16 +109,20 @@ class UserProfileController extends Controller
         $data = $request->validate([
             'telegram_bot_token' => 'nullable|string|max:255',
             'telegram_chat_id' => 'nullable|string|max:255',
+            'sms_enabled' => 'nullable|boolean',
+            'sms_sender' => 'nullable|string|max:20',
         ]);
 
         $user = Auth::user();
         $user->telegram_bot_token = $data['telegram_bot_token'] ?? null;
         $user->telegram_chat_id = $data['telegram_chat_id'] ?? null;
+        $user->sms_enabled = $request->boolean('sms_enabled');
+        $user->sms_sender = $data['sms_sender'] ?? null;
         $user->save();
 
         return redirect()
             ->route('user.profile', ['tab' => 'notifications'])
-            ->with('success', 'Paramètres Telegram mis à jour.');
+            ->with('success', 'Paramètres de notifications mis à jour.');
     }
     
 

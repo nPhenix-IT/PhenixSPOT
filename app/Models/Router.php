@@ -10,6 +10,9 @@ class Router extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'location',
+        'latitude',
+        'longitude',
         'ip_address',
         'radius_secret',
         'brand',

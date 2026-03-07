@@ -4,6 +4,7 @@
 
 ### **Features**
 - Multi User / Multi Tenancy (SaaS enabled)
+- Hotspot & PPPoE
 - Sales Dashboard
 - Router/NAS Management
 - Profiles Management
@@ -26,12 +27,12 @@ Composer: v2.2 or Above
 
 Clone this repository. Run the following command:
 ```
-git clone https://github.com/nPhenix-IT/RADIUSSPOT.git
+git clone https://github.com/nPhenix-IT/PhenixSPOT.git
 ```
 
 Move to the project directory:
 ```
-cd RADIUSSPOT
+cd PhenixSPOT
 ```
 
 install dependencies using Composer
@@ -52,15 +53,6 @@ php artisan key:generate
 Install all node the dependencies:
 ```
 yarn
-```
-
-Find .env.example file at root folder and copy it to .env by running below command Or also can manually copy it (if not having .env file):
-```
-cp .env.example .env
-```
-Run the following command to generate the key
-```
-php artisan key:generate
 ```
 
 ### **For Development Mode: Run this command**

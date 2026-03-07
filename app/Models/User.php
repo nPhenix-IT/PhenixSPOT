@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Models\PppoeAccount;
 use App\Models\PppoeProfile;
+use App\Models\SmsTransaction;
+use App\Models\SmsRechargeTransaction;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -38,6 +40,8 @@ class User extends Authenticatable
         'trial_used_at',
         'sms_enabled',
         'sms_sender',
+        'sms_credit_balance',
+        'telegram_bot_token',
         'telegram_bot_token',
         'telegram_chat_id',
         'password',
@@ -74,6 +78,8 @@ class User extends Authenticatable
         'trial_used_at' => 'datetime',
         'password' => 'hashed',
         'mikrotik_password' => 'encrypted',
+        'sms_enabled' => 'boolean',
+        'sms_credit_balance' => 'decimal:2',
     ];
 
     public function subscription()
@@ -139,6 +145,16 @@ class User extends Authenticatable
     public function onsiteSales()
     {
         return $this->hasMany(OnsiteSaleWallet::class);
+    }
+    
+    public function smsTransactions()
+    {
+        return $this->hasMany(SmsTransaction::class);
+    }
+
+    public function smsRechargeTransactions()
+    {
+        return $this->hasMany(SmsRechargeTransaction::class);
     }
 
 }

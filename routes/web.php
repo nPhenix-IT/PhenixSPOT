@@ -15,6 +15,8 @@ use App\Http\Controllers\User\UserProfileController;
 use App\Http\Controllers\User\SalePageController;
 use App\Http\Controllers\User\ReportController;
 use App\Http\Controllers\User\PppoeController;
+use App\Http\Controllers\User\SmsHistoryController;
+use App\Http\Controllers\User\SmsRechargeController;
 
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\CouponController;
@@ -26,6 +28,7 @@ use App\Http\Controllers\Admin\AccessPermissionController;
 use App\Http\Controllers\Admin\AccessRoleController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\InternalDocPageController;
+use App\Http\Controllers\Admin\SmsPackageController;
 use App\Http\Controllers\apps\AcademyCourseController;
 use App\Http\Controllers\apps\AcademyCourseDetailsController;
 
@@ -62,6 +65,7 @@ Route::get('/geo-test', function () {
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::get('/dashboard/stats', [DashboardController::class, 'getStats'])->middleware('auth')->name('dashboard.stats');
+Route::get('/dashboard/routers-map', [DashboardController::class, 'geolocatedRouters'])->middleware('auth')->name('dashboard.routers-map');
 
 // Changement de langue
 Route::get('/lang/{locale}', [LanguageController::class, 'swap']);
@@ -123,6 +127,11 @@ Route::middleware(['auth', 'active.user'])->name('user.')->group(function () {
     Route::delete('profile/security/delete-account', [UserProfileController::class, 'deleteAccount'])->name('profile.security.delete-account');
     Route::post('profile/notifications', [UserProfileController::class, 'updateNotifications'])->name('profile.notifications');
     Route::post('profile/notifications/test-telegram', [UserProfileController::class, 'testTelegram'])->name('profile.notifications.test-telegram');
+    Route::get('sms-history', [SmsHistoryController::class, 'index'])->name('sms-history.index');
+    Route::post('sms-packs/{smsPackage}/buy-wallet', [SmsRechargeController::class, 'buyWithWallet'])->name('sms-recharges.buy-wallet');
+    Route::post('sms-packs/{smsPackage}/buy-moneyfusion', [SmsRechargeController::class, 'initiateMoneyFusion'])->name('sms-recharges.buy-moneyfusion');
+    Route::get('sms-recharges/callback', [SmsRechargeController::class, 'callback'])->name('sms-recharges.callback');
+    Route::get('sms-history', [SmsHistoryController::class, 'index'])->name('sms-history.index');
     
     Route::get('sales-page', [SalePageController::class, 'edit'])->name('sales-page.edit');
     Route::post('sales-page', [SalePageController::class, 'update'])->name('sales-page.update');
@@ -188,6 +197,11 @@ Route::middleware(['auth', 'active.user', 'role:Super-admin|Admin'])->prefix('ad
     Route::get('withdrawals', [WithdrawalController::class, 'index'])->name('withdrawals.index');
     Route::post('withdrawals/{withdrawalRequest}/approve', [WithdrawalController::class, 'approve'])->name('withdrawals.approve');
     Route::post('withdrawals/{withdrawalRequest}/reject', [WithdrawalController::class, 'reject'])->name('withdrawals.reject');
+    Route::get('sms-packages', [SmsPackageController::class, 'index'])->name('sms-packages.index');
+    Route::post('sms-packages', [SmsPackageController::class, 'store'])->name('sms-packages.store');
+    Route::put('sms-packages/{smsPackage}', [SmsPackageController::class, 'update'])->name('sms-packages.update');
+    Route::delete('sms-packages/{smsPackage}', [SmsPackageController::class, 'destroy'])->name('sms-packages.destroy');
+    Route::post('sms-packages/settings', [SmsPackageController::class, 'updateSettings'])->name('sms-packages.settings.update');
     Route::resource('radius-servers', RadiusServerController::class);
     Route::get('radius-tester', [RadiusTesterController::class, 'index'])->name('radius-tester.index');
     Route::post('radius-tester/test', [RadiusTesterController::class, 'test'])->name('radius-tester.test');
@@ -223,6 +237,7 @@ Route::prefix('payment')->name('public.payment.')->group(function () {
 });
 
 Route::post('plans/payment/webhook', [PlanPaymentController::class, 'webhook'])->name('user.plans.payment-webhook');
+Route::post('sms-recharges/webhook', [SmsRechargeController::class, 'webhook'])->name('user.sms-recharges.webhook');
 
 // --- Route pour le Webhook FreeRADIUS ---
 // Cette route doit être accessible publiquement par le serveur RADIUS.

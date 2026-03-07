@@ -1,6 +1,12 @@
 'use strict';
 document.addEventListener('DOMContentLoaded', function() {
-    $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+    $.ajaxSetup({
+        cache: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+            'Cache-Control': 'no-cache'
+        }
+    });
 
     var dt_router_table = $('.datatables-routers');
     var dt_router;
@@ -79,12 +85,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     dt_router_table.on('click', '.item-edit', function() {
         var router_id = $(this).data('id');
-        $.get('/routers/' + router_id + '/edit', function(data) {
+        $.get('/routers/' + router_id + '/edit', { _ts: Date.now() }, function(data) {
             const editOffcanvas = document.getElementById('offcanvasAddRouter');
             setRouterIpLocked(true);
             $('#router_id').val(data.id);
-            $(editOffcanvas).find('[name="name"]').val(data.name);
-            $(editOffcanvas).find('[name="ip_address"]').val(data.ip_address);
+            $(editOffcanvas).find('[name="name"]').val(data.name ?? '');
+            const locationInput = document.getElementById('router_location');
+            const latitudeInput = document.getElementById('router_latitude');
+            const longitudeInput = document.getElementById('router_longitude');
+            if (locationInput) locationInput.value = data.location ?? '';
+            if (latitudeInput) latitudeInput.value = data.latitude ?? '';
+            if (longitudeInput) longitudeInput.value = data.longitude ?? '';
+            $(editOffcanvas).find('[name="ip_address"]').val(data.ip_address ?? '');
             $(editOffcanvas).find('[name="brand"]').val(data.brand);
             $(editOffcanvas).find('[name="api_address"]').val(data.api_address);
             $(editOffcanvas).find('[name="api_port"]').val(data.api_port);

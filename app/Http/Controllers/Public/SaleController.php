@@ -13,6 +13,7 @@ use App\Models\Voucher;
 use App\Models\OnsiteSaleWallet; // ✅ AJOUT
 use App\Services\KingSmsService;
 use App\Services\MoneyFusionService;
+use App\Services\SmsCreditService;
 use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -197,8 +198,20 @@ class SaleController extends Controller
 
     if ($user && $user->sms_enabled && $pendingTransaction->customer_number && $code && $profile) {
       $message = "Votre code WiFi est: {$code}. Pass: {$profile->name}.";
-      $smsSender = $user->sms_sender ?: null;
-      app(KingSmsService::class)->sendSms($pendingTransaction->customer_number, $message, $smsSender);
+      $smsCredit = app(SmsCreditService::class);
+      $smsSender = $smsCredit->getSenderNameFor($user);
+      $allowed = $smsCredit->debitAndLog($user, [
+        'recipient' => $pendingTransaction->customer_number,
+        'sender_name' => $smsSender,
+        'message' => $message,
+        'context' => 'voucher_sale',
+        'meta' => ['transaction_id' => $pendingTransaction->transaction_id],
+      ]);
+
+      if ($allowed) {
+        $sent = app(KingSmsService::class)->sendSms($pendingTransaction->customer_number, $message, $smsSender);
+        $smsCredit->markLastDeliveryStatus($user, $pendingTransaction->customer_number, $message, $sent);
+      }
     }
 
     if ($user && $user->telegram_bot_token && $user->telegram_chat_id && $code && $profile) {

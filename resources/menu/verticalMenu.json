@@ -112,6 +112,17 @@
       ]
     },
     {
+      "url": "/sms-history",
+      "badge": "Nouveau",
+      "name": "Historique SMS",
+      "icon": "menu-icon icon-base ti tabler-message-2",
+      "slug": "user.sms-history.index",
+      "roles": [
+        "Super-admin",
+        "Admin"
+      ]
+    },
+    {
       "url": "/payment-gateways",
       "name": "Moyens de Paiement",
       "icon": "menu-icon icon-base ti tabler-credit-card",
@@ -260,6 +271,15 @@
             "Super-admin"
           ]
         }
+      ]
+    },
+    {
+      "url": "/admin/sms-packages",
+      "name": "Packs SMS",
+      "icon": "menu-icon icon-base ti tabler-message",
+      "slug": "admin.sms-packages.index",
+      "roles": [
+        "Super-admin"
       ]
     },
     {

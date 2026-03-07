@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\PendingTransaction;
 use App\Models\Profile;
 use App\Models\Router;
 use App\Models\SalePageSetting;
+use App\Models\PendingVpnAccountPayment;
 use App\Services\OnboardingService;
 use App\Models\User;
 use App\Models\Voucher;
@@ -120,11 +122,96 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        return response()->json(
-            $user->hasRole(['Super-admin', 'Admin'])
-                ? $this->getAdminStats($request)
-                : $this->getUserStats($user, $request)
-        );
+        return response()
+            ->json(
+                $user->hasRole(['Super-admin', 'Admin'])
+                    ? $this->getAdminStats($request)
+                    : $this->getUserStats($user, $request)
+            )
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
+    }
+
+
+    /**
+     * Retourne les routeurs géolocalisés selon les filtres actifs du dashboard.
+     */
+    public function geolocatedRouters(Request $request)
+    {
+        $user = Auth::user();
+        $isAdmin = $user->hasRole(['Super-admin', 'Admin']);
+
+        $routerId = $request->integer('router_id');
+        $saleTypeFilter = (string) $request->input('sale_type', 'all');
+        $period = (string) $request->input('period', 'month');
+
+        $daysCount = match($period) {
+            'day' => 1,
+            'week' => 7,
+            'month' => 30,
+            'year' => 365,
+            default => 30,
+        };
+        $startDate = Carbon::now()->subDays($daysCount - 1)->startOfDay();
+
+        $query = Router::query()
+            ->when(!$isAdmin, fn ($q) => $q->where('routers.user_id', $user->id))
+            ->when($routerId, fn ($q) => $q->where('routers.id', $routerId))
+            ->whereNotNull('routers.latitude')
+            ->whereNotNull('routers.longitude')
+            ->select('routers.id', 'routers.name', 'routers.brand', 'routers.location', 'routers.latitude', 'routers.longitude')
+            ->selectSub(function ($q) use ($startDate, $saleTypeFilter) {
+                $q->from('vouchers')
+                    ->join('profiles', 'profiles.id', '=', 'vouchers.profile_id')
+                    ->whereColumn('vouchers.activated_router_id', 'routers.id')
+                    ->where('vouchers.status', 'used')
+                    ->where('vouchers.created_at', '>=', $startDate)
+                    ->when($saleTypeFilter === 'online', fn ($qq) => $qq->whereRaw('1 = 0'))
+                    ->selectRaw('COALESCE(SUM(profiles.price), 0)');
+            }, 'manual_sales')
+            ->selectSub(function ($q) use ($startDate, $saleTypeFilter) {
+                $q->from('pending_transactions')
+                    ->whereColumn('pending_transactions.router_id', 'routers.id')
+                    ->where('pending_transactions.status', 'completed')
+                    ->where('pending_transactions.created_at', '>=', $startDate)
+                    ->when($saleTypeFilter === 'manual', fn ($qq) => $qq->whereRaw('1 = 0'))
+                    ->selectRaw('COALESCE(SUM(total_price - COALESCE(commission_amount, 0)), 0)');
+            }, 'online_sales')
+            ->selectSub(function ($q) {
+                $q->from('radacct')
+                    ->join('vouchers', DB::raw('LOWER(TRIM(vouchers.code))'), '=', DB::raw('LOWER(TRIM(radacct.username))'))
+                    ->whereColumn('vouchers.activated_router_id', 'routers.id')
+                    ->whereNull('radacct.acctstoptime')
+                    ->selectRaw('COUNT(DISTINCT LOWER(TRIM(radacct.username)))');
+            }, 'connected_codes')
+            ->orderBy('routers.name');
+
+        $routers = $query->get()->map(function ($router) {
+            $manual = round((float) ($router->manual_sales ?? 0), 2);
+            $online = round((float) ($router->online_sales ?? 0), 2);
+            $totalSales = round($manual + $online, 2);
+            $connectedCodes = (int) ($router->connected_codes ?? 0);
+
+            return [
+                'id' => (int) $router->id,
+                'name' => (string) $router->name,
+                'brand' => (string) ($router->brand ?? 'Type non renseigné'),
+                'location' => (string) ($router->location ?? 'Zone non renseignée'),
+                'latitude' => (float) $router->latitude,
+                'longitude' => (float) $router->longitude,
+                'manual_sales' => $manual,
+                'online_sales' => $online,
+                'sales' => $totalSales,
+                'connected_codes' => $connectedCodes,
+                'status' => $connectedCodes > 0 ? 'Connecté' : ($totalSales > 0 ? 'Actif' : 'Inactif'),
+            ];
+        })->values();
+
+        return response()->json(['data' => $routers])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     /**
@@ -572,6 +659,7 @@ class DashboardController extends Controller
 
         // Table: 5 dernières transactions "fees"
         $latestFees = $this->buildAdminLatestFees(5);
+        $latestPlanPayments = $this->buildAdminLatestPlanPayments(8);
 
         // ✅ NEW: Top partenaires (Top 5) sur la période
         $topPartners = $this->buildAdminTopPartners($start, 5);
@@ -600,6 +688,7 @@ class DashboardController extends Controller
                 'fees_trend' => $platformFeesTrend,
             ],
             'latest_fees' => $latestFees,
+            'latest_plan_payments' => $latestPlanPayments,
 
             // ✅ NEW
             'top_partners' => $topPartners,
@@ -610,6 +699,17 @@ class DashboardController extends Controller
     {
         $count = 0;
         $amount = 0.0;
+        
+        if (Schema::hasTable('pending_vpn_account_payments')) {
+            $payments = PendingVpnAccountPayment::query()
+                ->where('status', 'completed')
+                ->whereNotNull('payload->plan_id');
+
+            $count = (int) (clone $payments)->count();
+            $amount = (float) (clone $payments)->sum(DB::raw('COALESCE(amount,0)'));
+
+            return [$count, $amount];
+        }
 
         if (Schema::hasTable('subscriptions')) {
             $count = (int) DB::table('subscriptions')->count();
@@ -670,6 +770,33 @@ class DashboardController extends Controller
             ->where('status', 'completed')
             ->where('created_at', '>=', $start)
             ->sum(DB::raw('COALESCE(amount,0)'));
+    }
+    
+    private function buildAdminLatestPlanPayments(int $limit = 8): array
+    {
+        if (!Schema::hasTable('pending_vpn_account_payments')) {
+            return [];
+        }
+
+        return PendingVpnAccountPayment::query()
+            ->where('status', 'completed')
+            ->whereNotNull('payload->plan_id')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get(['transaction_id', 'user_id', 'amount', 'payload', 'created_at'])
+            ->map(function ($row) {
+                $payload = is_array($row->payload) ? $row->payload : [];
+
+                return [
+                    'reference' => (string) ($row->transaction_id ?: ('PAY-' . $row->id)),
+                    'partner' => (string) (User::find($row->user_id)?->name ?? ('User #' . $row->user_id)),
+                    'plan_name' => (string) ($payload['plan_name'] ?? ('Plan #' . ($payload['plan_id'] ?? 'N/A'))),
+                    'amount' => (float) ($payload['total_payable'] ?? $row->amount ?? 0),
+                    'paid_at' => optional($row->created_at)->format('d/m/Y H:i'),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function buildAdminTopPartners($start, int $limit = 5): array

@@ -27,6 +27,26 @@ body { background-color: var(--dash-bg); }
 .chart-filter-select { border: none; font-size: 0.8rem; font-weight: 600; color: #7367f0; cursor: pointer; background: #f0eeff; padding: 4px 10px; border-radius: 8px; }
 .onboarding-card { border: 1px solid #e9e7ff; background: linear-gradient(135deg, rgba(115,103,240,.08), rgba(0,207,232,.08)); }
 .onboarding-step { border-radius: 12px; border: 1px dashed #d9d6ff; padding: .65rem .8rem; background: #fff; }
+#routerMap { min-height: 420px; border-radius: 14px; }
+.leaflet-popup-content { min-width: 220px; }
+.leaflet-popup.router-marker-popup .leaflet-popup-content-wrapper { animation: markerPopupIn .22s ease-out; transform-origin: bottom center; }
+.leaflet-tooltip.router-marker-label {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #dbe2ea;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+.leaflet-tooltip.router-marker-label::before {
+  border-top-color: #dbe2ea;
+}
+@keyframes markerPopupIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 </style>
 @endsection
 
@@ -314,6 +334,50 @@ body { background-color: var(--dash-bg); }
         </div>
       </div>
     </div>
+    
+    <div class="row g-4 mt-1">
+      <div class="col-12">
+        <div class="card card-analytics">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 fw-bold">Transactions abonnements SaaS</h5>
+            <span class="badge bg-label-success">Derniers paiements</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-modern">
+              <thead>
+              <tr>
+                <th>Référence</th>
+                <th>Partenaire</th>
+                <th>Plan SaaS</th>
+                <th>Montant (XOF)</th>
+                <th>Date paiement</th>
+              </tr>
+              </thead>
+              <tbody id="admin-plan-payments-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  @endif
+  
+  @if(!$isAdmin)
+    <div class="row g-4 mb-4">
+      <div class="col-12">
+        <div class="card card-analytics">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="card-title mb-0 fw-bold">Carte des routeurs</h5>
+              <small class="text-muted">Visualisation des routeurs géolocalisés</small>
+            </div>
+            <span class="badge bg-label-info" id="routerMapCount">0 Routeur</span>
+          </div>
+          <div class="card-body">
+            <div id="routerMap"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   @endif
 
   <!-- Bottom Row -->
@@ -360,6 +424,8 @@ body { background-color: var(--dash-bg); }
 
 @section('vendor-script')
 @vite(['resources/assets/vendor/libs/apex-charts/apexcharts.js'])
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const isAdmin = @json($isAdmin);
@@ -368,7 +434,120 @@ document.addEventListener('DOMContentLoaded', function() {
   const userId = @json((int) auth()->id());
   const formatter = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' });
   const withdrawalsUrl = @json(url('/admin/withdrawals'));
-  let chartEvolution, chartSource, chartRouter, chartFeesTrend;
+  const leafletConfig = @json(config('services.leaflet'));
+  let chartEvolution, chartSource, chartRouter, chartFeesTrend, routerMap, routerMapLayer;
+
+
+  const initRouterMap = () => {
+    if (isAdmin || typeof L === 'undefined') return;
+
+    if (!routerMap) {
+      routerMap = L.map('routerMap', { attributionControl: false }).setView([5.3599517, -4.0082563], 7);
+      L.tileLayer(leafletConfig.tile_url, {
+        attribution: '',
+        maxZoom: 19,
+      }).addTo(routerMap);
+      routerMapLayer = L.layerGroup().addTo(routerMap);
+    }
+  };
+
+  const renderRoutersOnMap = async (params) => {
+    if (isAdmin || typeof L === 'undefined') return;
+    initRouterMap();
+    if (!routerMapLayer) return;
+
+    const mapParams = new URLSearchParams(params.toString());
+    mapParams.append('_ts', `${Date.now()}`);
+    const response = await fetch(`/dashboard/routers-map?${mapParams.toString()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    const payload = await response.json();
+    const rows = Array.isArray(payload.data) ? payload.data : [];
+
+    routerMapLayer.clearLayers();
+
+    const countEl = document.getElementById('routerMapCount');
+    if (countEl) {
+      countEl.textContent = `${rows.length} routeur${rows.length > 1 ? 's' : ''}`;
+    }
+
+    if (!rows.length) {
+      routerMap.setView([5.3599517, -4.0082563], 6);
+      return;
+    }
+
+    const bounds = [];
+
+    rows.forEach((router) => {
+      const lat = Number(router.latitude);
+      const lng = Number(router.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      bounds.push([lat, lng]);
+
+      const statusClass = router.status === 'Connecté'
+        ? 'success'
+        : (router.status === 'Actif' ? 'info' : 'secondary');
+      const popup = `
+        <div class="mb-1 fw-semibold">${router.name}</div>
+        <div class="small mb-1"><span class="text-muted">Fabriquant / Type:</span> <strong>${router.brand || 'Type non renseigné'}</strong></div>
+        <div class="small mb-1"><span class="text-muted">Zone:</span> ${router.location || 'Zone non renseignée'}</div>
+        <div class="small mb-1"><span class="text-muted">Statut:</span> <span class="badge bg-label-${statusClass}">${router.status}</span></div>
+        <div class="small mb-1">Vente en ligne: <strong>${formatter.format(Number(router.online_sales || 0))}</strong></div>
+        <div class="small mb-1">Vente physique: <strong>${formatter.format(Number(router.manual_sales || 0))}</strong></div>
+        <div class="small mb-1">Total: <strong>${formatter.format(Number(router.sales || 0))}</strong></div>
+        <div class="small">Nombre de codes connectés: <strong>${Number(router.connected_codes || 0)}</strong></div>
+      `;
+
+      const marker = L.marker([lat, lng]).addTo(routerMapLayer);
+      marker.bindTooltip(router.name || 'Routeur', {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -12],
+        className: 'router-marker-label',
+      });
+      marker.bindPopup(popup, {
+        className: 'router-marker-popup',
+        autoPan: true,
+      });
+
+      let popupCloseTimer;
+      marker.on('mouseover', () => {
+        if (popupCloseTimer) {
+          clearTimeout(popupCloseTimer);
+        }
+        marker.openPopup();
+      });
+
+      marker.on('mouseout', () => {
+        popupCloseTimer = setTimeout(() => {
+          marker.closePopup();
+        }, 180);
+      });
+
+      marker.on('popupopen', () => {
+        const popupEl = marker.getPopup()?.getElement();
+        if (!popupEl) return;
+
+        popupEl.addEventListener('mouseenter', () => {
+          if (popupCloseTimer) {
+            clearTimeout(popupCloseTimer);
+          }
+        });
+
+        popupEl.addEventListener('mouseleave', () => {
+          popupCloseTimer = setTimeout(() => {
+            marker.closePopup();
+          }, 180);
+        });
+      });
+    });
+
+    if (bounds.length) {
+      routerMap.fitBounds(bounds, { padding: [24, 24] });
+    }
+  };
 
   window.loadStats = async () => {
     const params = new URLSearchParams();
@@ -383,8 +562,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     try {
-      const res = await fetch(`{{ route('dashboard.stats') }}?${params}`);
+      params.append('_ts', `${Date.now()}`);
+      const res = await fetch(`{{ route('dashboard.stats') }}?${params.toString()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       const data = await res.json();
+      if (!isAdmin) {
+        await renderRoutersOnMap(params);
+      }
       updateUI(data);
     } catch (e) { console.error("Erreur stats:", e); }
   };
@@ -399,6 +585,7 @@ document.addEventListener('DOMContentLoaded', function() {
       { label: 'Utilisateurs', val: k.users, icon: 'tabler-users', color: 'info' },
       { label: 'Routeurs', val: k.routers_total ?? 0, icon: 'tabler-router', color: 'info' },
       { label: 'Forfaits souscrits', val: k.subscriptions_count ?? 0, icon: 'tabler-crown', color: 'success' },
+      { label: 'Paiements SaaS (cumul)', val: formatter.format(k.subscriptions_amount ?? 0), icon: 'tabler-credit-card', color: 'success' },
 
       { label: 'Fees Plateforme', val: formatter.format(k.fees_total ?? 0), icon: 'tabler-receipt-tax', color: 'warning' },
       { label: 'Commissions ventes', val: formatter.format(k.commission_total ?? 0), icon: 'tabler-percentage', color: 'primary' },
@@ -494,6 +681,22 @@ document.addEventListener('DOMContentLoaded', function() {
           <td class="small text-muted">${t.transacted_at}</td>
         </tr>
       `).join('');
+      
+      const saasBody = document.getElementById('admin-plan-payments-tbody');
+      const saasRows = data.latest_plan_payments || [];
+      if (saasBody) {
+        saasBody.innerHTML = saasRows.length
+          ? saasRows.map((t) => `
+            <tr>
+              <td><div class="fw-bold text-primary">${t.reference}</div></td>
+              <td>${t.partner}</td>
+              <td>${t.plan_name}</td>
+              <td class="fw-bold">${formatter.format(Number(t.amount || 0))}</td>
+              <td class="small text-muted">${t.paid_at || '-'}</td>
+            </tr>
+          `).join('')
+          : `<tr><td colspan="5" class="text-center text-muted py-4">Aucun paiement d'abonnement SaaS.</td></tr>`;
+      }
 
       return;
     }

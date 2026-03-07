@@ -22,53 +22,101 @@
     </div>
     <div class="card">
       <!-- Notifications -->
-      <div class="card-body">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-4">
-          <div>
-            <h5 class="mb-0">Notifications Telegram</h5>
-            <span class="card-subtitle">Recevez un rapport automatique pour chaque achat de voucher.</span>
-          </div>
-          <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#telegramHelpModal">
-            <i class="icon-base ti tabler-info-circle me-1"></i> Guide Telegram
-          </button>
-        </div>
+      <div class="card-body border-bottom">
+        <h5 class="mb-1">Paramètres des notifications</h5>
+        <p class="text-muted mb-0">Configurez vos canaux Telegram et SMS pour la réception et l’envoi des notifications.</p>
+      </div>
+      <div class="card-body pt-4 pb-0">
         @if (session('success'))
-          <div class="alert alert-success mt-4">{{ session('success') }}</div>
+          <div class="alert alert-success">{{ session('success') }}</div>
         @endif
       </div>
       <div class="card-body">
         <form action="{{ route('user.profile.notifications') }}" method="POST">
           @csrf
-          <div class="row g-4">
-            <div class="col-md-6">
-              <label class="form-label" for="telegram_bot_token">Telegram Bot Token</label>
-              <input type="text" id="telegram_bot_token" name="telegram_bot_token" class="form-control"
-                value="{{ old('telegram_bot_token', auth()->user()->telegram_bot_token) }}" />
-              @error('telegram_bot_token')
-                <div class="text-danger small mt-1">{{ $message }}</div>
-              @enderror
+          
+          <div class="accordion" id="notificationsAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="headingTelegramSection">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTelegramSection" aria-expanded="true" aria-controls="collapseTelegramSection">
+                  <i class="icon-base ti tabler-brand-telegram me-1"></i> Notifications Telegram
+                </button>
+              </h2>
+              <div id="collapseTelegramSection" class="accordion-collapse collapse show" aria-labelledby="headingTelegramSection" data-bs-parent="#notificationsAccordion">
+                <div class="accordion-body">
+                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-4 mb-4">
+                    <div>
+                      <!--<h5 class="mb-0">Notifications Telegram</h5>-->
+                      <span class="card-subtitle">Recevez un rapport automatique pour chaque achat de voucher.</span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#telegramHelpModal">
+                      <i class="icon-base ti tabler-info-circle me-1"></i> Guide Telegram
+                    </button>
+                  </div>
+
+                  <div class="row g-4">
+                    <div class="col-md-6">
+                      <label class="form-label" for="telegram_bot_token">Telegram Bot Token</label>
+                      <input type="text" id="telegram_bot_token" name="telegram_bot_token" class="form-control"
+                        value="{{ old('telegram_bot_token', auth()->user()->telegram_bot_token) }}" />
+                      @error('telegram_bot_token')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                      @enderror
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label" for="telegram_chat_id">Telegram Chat ID</label>
+                      <input type="text" id="telegram_chat_id" name="telegram_chat_id" class="form-control"
+                        value="{{ old('telegram_chat_id', auth()->user()->telegram_chat_id) }}" />
+                      @error('telegram_chat_id')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                      @enderror
+                    </div>
+                  </div>
+
+                  <div class="mt-4">
+                    <button type="submit" formaction="{{ route('user.profile.notifications.test-telegram') }}" formmethod="POST" class="btn btn-outline-success">
+                      <i class="icon-base ti tabler-send me-1"></i> Tester Telegram
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label" for="telegram_chat_id">Telegram Chat ID</label>
-              <input type="text" id="telegram_chat_id" name="telegram_chat_id" class="form-control"
-                value="{{ old('telegram_chat_id', auth()->user()->telegram_chat_id) }}" />
-              @error('telegram_chat_id')
-                <div class="text-danger small mt-1">{{ $message }}</div>
-              @enderror
+            
+            <div class="accordion-item mt-3">
+              <h2 class="accordion-header" id="headingSmsSection">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSmsSection" aria-expanded="false" aria-controls="collapseSmsSection">
+                   <i class="icon-base ti tabler-message-dots me-1"></i> Notifications SMS
+                </button>
+              </h2>
+              <div id="collapseSmsSection" class="accordion-collapse collapse" aria-labelledby="headingSmsSection" data-bs-parent="#notificationsAccordion">
+                <div class="accordion-body">
+                  <div class="row g-4">
+                    <div class="col-md-6">
+                      <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="sms_enabled" name="sms_enabled" value="1" {{ old('sms_enabled', auth()->user()->sms_enabled) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="sms_enabled">Activer l’envoi SMS</label>
+                      </div>
+                      <small class="text-muted d-block mt-1">Pour l'envoi des vouchers/codes par sms au client apres achat</small>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label" for="sms_sender">Sender Name SMS</label>
+                      <input type="text" id="sms_sender" name="sms_sender" class="form-control" maxlength="20" value="{{ old('sms_sender', auth()->user()->sms_sender) }}" placeholder="PhenixSPOT" />
+                    </div>
+                    <div class="col-12">
+                      <a href="{{ route('user.sms-history.index') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="icon-base ti tabler-history me-1"></i> Voir l’historique SMS
+                      </a>
+                      <span class="badge bg-label-info ms-2">Solde actuel: {{ number_format((float) auth()->user()->sms_credit_balance, 0, ',', ' ') }} SMS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="mt-6 d-flex flex-wrap gap-3">
-            <button type="submit" class="btn btn-primary me-3">Enregistrer</button>
-            <button type="reset" class="btn btn-label-secondary">Annuler</button>
-            <button type="submit" class="btn btn-outline-success" form="telegramTestForm">
-              <i class="icon-base ti tabler-send me-1"></i> Tester Telegram
-            </button>
+          
+          <div class="mt-6 pt-2 border-top">
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
           </div>
-        </form>
-        <form id="telegramTestForm" action="{{ route('user.profile.notifications.test-telegram') }}" method="POST" class="d-none">
-          @csrf
-          <input type="hidden" name="telegram_bot_token" value="{{ old('telegram_bot_token', auth()->user()->telegram_bot_token) }}" />
-          <input type="hidden" name="telegram_chat_id" value="{{ old('telegram_chat_id', auth()->user()->telegram_chat_id) }}" />
         </form>
       </div>
       <!-- /Notifications -->

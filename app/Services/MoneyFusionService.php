@@ -89,16 +89,25 @@ class MoneyFusionService
        string $transactionId,
        string $returnUrl,
        string $webhookUrl,
-       string $label = 'Compte VPN supplémentaire'
+       string $label = 'Compte VPN supplémentaire',
+       ?string $customerNumber = null,
+       ?string $customerName = null
    ): array {
+       $numeroSend = $customerNumber ?: ($user->phone_number ?? '');
+       $numeroSend = preg_replace('/\D+/', '', (string) $numeroSend);
+
+       if ($numeroSend === '' || strlen($numeroSend) < 8) {
+           throw new Exception('Numéro client invalide pour initier le paiement MoneyFusion.');
+       }
+       
        $payload = [
-           'totalPrice' => $amount,
+           'totalPrice' => (int) $amount,
            'article' => [[
                'name' => $label,
-               'price' => $amount,
+               'price' => (int) $amount,
            ]],
-           'nomclient' => $user->name,
-           'numeroSend' => $user->phone_number ?? '00000000',
+           'nomclient' => $customerName ?: $user->name,
+           'numeroSend' => $numeroSend,
            'return_url' => $returnUrl,
            'webhook_url' => $webhookUrl,
            'personal_Info' => [[

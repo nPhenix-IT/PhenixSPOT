@@ -114,6 +114,9 @@ class RouterController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'location' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'ip_address' => ['required', 'string', 'max:255', Rule::unique('routers')->ignore($request->id)],
             'brand' => ['required', Rule::in(['MikroTik', 'TP-Link', 'Ubiquiti', 'Cisco', 'Autres'])],
             'api_address'  => 'sometimes|nullable|string|max:255',
@@ -253,7 +256,23 @@ class RouterController extends Controller
     public function edit(Router $router)
     {
         if ($router->user_id !== Auth::id()) { abort(403); }
-        return response()->json($router);
+        return response()->json([
+            'id' => (int) $router->id,
+            'name' => (string) $router->name,
+            'location' => $router->location,
+            'latitude' => $router->latitude,
+            'longitude' => $router->longitude,
+            'ip_address' => (string) $router->ip_address,
+            'brand' => (string) $router->brand,
+            'api_address' => $router->api_address,
+            'api_port' => $router->api_port,
+            'api_user' => $router->api_user,
+            'api_password' => $router->api_password,
+            'description' => $router->description,
+        ])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function destroy($id)
@@ -431,6 +450,7 @@ RSC;
 :local ROUTERSRCIP "{$wgClient->client_ip}";
 :set ROUTERSRCIP [:pick \$ROUTERSRCIP 0 [:find \$ROUTERSRCIP "/"]];
 /radius set [find where address=\$RADIUSIP] src-address=\$ROUTERSRCIP;
+/system logging add topics=radius,debug action=memory;
 
  :log info "PhenixSPOT WireGuard + RADIUS configuré";
 # ==========================================
